@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Sign in — TerraSync</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F6F5;
+    --bg-raised:#FFFFFF;
+    --ink:#172033;
+    --ink-soft:#5B6475;
+    --forest:#166534;
+    --forest-deep:#0F2D22;
+    --moss:#0F766E;
+    --amber:#F59E0B;
+    --brick:#DC2626;
+    --leaf:#84CC16;
+    --sky:#2563EB;
+    --line:#E1E5E2;
+    --radius:16px;
+    --shadow:0 4px 12px rgba(15,29,23,.06),0 14px 34px rgba(15,29,23,.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  ::selection{background:#A7F3D0;color:#064E3B;}
+  h1,h2,h3,.display{font-family:'Fraunces',serif;font-weight:600;letter-spacing:-0.01em;color:var(--forest-deep);margin:0;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+
+  .page{display:grid;grid-template-columns:420px 1fr;min-height:100vh;}
+  @media(max-width:880px){.page{grid-template-columns:1fr;}}
+
+  /* ---------- Left: official rail ---------- */
+  .rail{
+    background:linear-gradient(180deg,#0F2D22 0%,#0A2119 100%);
+    color:#fff;padding:34px 34px 30px;display:flex;flex-direction:column;
+    position:relative;overflow:hidden;
+  }
+  .rail::before{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(circle at 85% 8%, rgba(37,99,235,.22), transparent 42%);
+    pointer-events:none;
+  }
+  .brand{display:flex;align-items:center;gap:12px;position:relative;z-index:1;}
+  .brand-mark{
+    width:38px;height:38px;border-radius:10px;
+    background:linear-gradient(135deg,#166534,#0F766E 65%,#2563EB);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .brand-mark svg{width:22px;height:22px;}
+  .brand-text .name{font-family:'Fraunces',serif;font-size:19px;font-weight:600;color:#fff;line-height:1.1;}
+  .brand-text .sub{font-size:11px;color:#9FB3A6;letter-spacing:.04em;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;}
+
+  .rail-badge{
+    position:relative;z-index:1;margin-top:26px;
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:#BFE8D5;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);
+    padding:6px 12px;border-radius:100px;display:inline-flex;gap:8px;align-items:center;width:fit-content;
+  }
+  .rail-badge .dot{width:6px;height:6px;border-radius:50%;background:#84CC16;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  .rail h1{position:relative;z-index:1;color:#fff;font-size:29px;line-height:1.18;margin-top:26px;max-width:320px;}
+  .rail p{position:relative;z-index:1;color:#B9CBB6;font-size:13.5px;line-height:1.6;margin-top:12px;max-width:300px;}
+
+  .rail-stats{position:relative;z-index:1;margin-top:auto;padding-top:26px;border-top:1px solid rgba(255,255,255,.14);}
+  .rstat{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;font-size:12.5px;color:#9FB3A6;}
+  .rstat b{font-family:'Fraunces',serif;font-size:16px;color:#fff;font-weight:600;}
+
+  .rail-notice{
+    position:relative;z-index:1;margin-top:20px;padding:13px 14px;border-radius:10px;
+    background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);
+    font-size:11.5px;color:#FCD9A8;line-height:1.5;display:flex;gap:9px;
+  }
+  .rail-notice svg{flex-shrink:0;width:15px;height:15px;margin-top:1px;color:#F59E0B;}
+
+  /* ---------- Right: form area ---------- */
+  .stage{display:flex;align-items:center;justify-content:center;padding:40px 24px;}
+  .form-card{
+    width:100%;max-width:430px;
+    background:var(--bg-raised);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:36px 34px;
+  }
+  .form-card h2{font-size:22px;}
+  .form-card .hint{font-size:13.5px;color:var(--ink-soft);margin-top:6px;margin-bottom:26px;}
+
+  .role-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:22px;}
+  .role-opt{
+    border:1px solid var(--line);border-radius:10px;padding:11px 6px;text-align:center;cursor:pointer;
+    background:#fff;transition:.12s;
+  }
+  .role-opt svg{width:18px;height:18px;margin-bottom:5px;color:var(--ink-soft);}
+  .role-opt span{display:block;font-size:11px;font-weight:700;color:var(--ink-soft);line-height:1.3;}
+  .role-opt.selected{border-color:var(--forest);background:#ECFDF5;}
+  .role-opt.selected svg,.role-opt.selected span{color:var(--forest-deep);}
+
+  label{font-size:12px;font-weight:700;color:#0F2D22;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em;}
+  .field{margin-bottom:16px;}
+  input[type=text],input[type=password],select{
+    width:100%;font-family:'Inter',sans-serif;font-size:14.5px;padding:11px 12px;
+    border:1px solid #DDE2DE;border-radius:9px;background:#fff;color:var(--ink);
+  }
+  input:focus,select:focus{outline:2px solid #A7F3D0;outline-offset:1px;border-color:#0F766E;}
+  .pw-row{position:relative;}
+  .pw-toggle{
+    position:absolute;right:11px;top:50%;transform:translateY(-50%);
+    background:none;border:none;cursor:pointer;color:var(--ink-soft);padding:0;display:flex;
+  }
+
+  .remember-row{display:flex;justify-content:space-between;align-items:center;margin:2px 0 18px;font-size:12.5px;}
+  .remember-row label{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink-soft);margin:0;cursor:pointer;}
+  .remember-row input[type=checkbox]{width:15px;height:15px;accent-color:#166534;}
+  .forgot{color:#0F766E;font-weight:600;text-decoration:none;cursor:pointer;}
+
+  .submit-btn{
+    width:100%;background:linear-gradient(135deg,#166534,#0F766E);color:#fff;border:none;padding:13px;border-radius:9px;
+    font-weight:700;font-size:14.5px;cursor:pointer;transition:.15s;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 8px 18px rgba(15,118,110,.2);
+  }
+  .submit-btn:hover{background:linear-gradient(135deg,#0F2D22,#0B4A42);}
+
+  .mfa-note{
+    display:flex;gap:10px;align-items:flex-start;background:#F1F5F3;border:1px solid var(--line);
+    border-radius:10px;padding:12px 13px;margin-bottom:18px;font-size:12px;color:var(--ink-soft);line-height:1.5;
+  }
+  .mfa-note svg{flex-shrink:0;width:16px;height:16px;margin-top:1px;color:#0F766E;}
+
+  .toast{
+    display:none;margin-top:16px;padding:12px 14px;background:#ECFDF5;border:1px solid #A7F3D0;
+    border-radius:9px;font-size:13px;color:#166534;align-items:center;gap:8px;
+  }
+  .toast.show{display:flex;animation:fade .2s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  .switch-line{text-align:center;font-size:12.5px;color:var(--ink-soft);margin-top:22px;}
+  .switch-line b{color:#0F766E;cursor:pointer;font-weight:700;}
+
+  .foot-note{max-width:430px;margin:16px auto 0;text-align:center;font-size:11px;color:#9AA5A0;font-family:'IBM Plex Mono',monospace;}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- LEFT: official rail -->
+  <div class="rail">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 21C7 21 4 17 4 12.5C4 8 7 4 12 3C13 8 16 8.5 16 12.5C16 17 15 21 12 21Z" stroke="#F2F0E4" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 21V10" stroke="#F2F0E4" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <div class="brand-text">
+        <div class="name">TerraSync</div>
+        <div class="sub">Admin &amp; Ward Console</div>
+      </div>
+    </div>
+
+    <div class="rail-badge"><span class="dot"></span> AUTHORIZED PERSONNEL ONLY</div>
+
+    <h1>Every report routed to<br>the right desk, on time.</h1>
+    <p>Sign in to triage incoming issues, move them through your ward's queue, and keep resolution SLAs on track.</p>
+
+    <div class="rail-stats">
+      <div class="rstat"><span>Open across all wards</span><b>312</b></div>
+      <div class="rstat"><span>Breaching SLA today</span><b style="color:#F87171">14</b></div>
+      <div class="rstat"><span>Officers online now</span><b>47</b></div>
+    </div>
+
+    <div class="rail-notice">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 3.86a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>This console is restricted to verified municipal staff. Access is logged and audited.</span>
+    </div>
+  </div>
+
+  <!-- RIGHT: form -->
+  <div class="stage">
+    <div>
+      <div class="form-card">
+        <h2>Staff sign in</h2>
+        <div class="hint">Select your role, then sign in with your municipal credentials.</div>
+
+        <div id="step-credentials">
+        <div class="role-grid" id="role-grid">
+          <div class="role-opt selected" data-role="ward">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M3 21V9l9-6 9 6v12M9 21v-6h6v6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            <span>Ward Officer</span>
+          </div>
+          <div class="role-opt" data-role="dept">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 21V7l8-4 8 4v14M4 21h16M9 21v-5h6v5" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            <span>Dept. Head</span>
+          </div>
+          <div class="role-opt" data-role="super">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            <span>Super Admin</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Employee ID</label>
+          <input type="text" placeholder="e.g. NN-WD14-0231" id="emp-id">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <div class="pw-row">
+            <input type="password" placeholder="••••••••••" id="pw-input">
+            <button class="pw-toggle" onclick="togglePw()" type="button" aria-label="Show password">
+              <svg id="eye-icon" width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="field" id="dept-field" style="display:none;">
+          <label>Department</label>
+          <select>
+            <option>Sanitation &amp; Waste</option>
+            <option>Water Supply &amp; Drainage</option>
+            <option>Roads &amp; Infrastructure</option>
+            <option>Parks &amp; Green Spaces</option>
+            <option>Street Lighting</option>
+          </select>
+        </div>
+
+        <div class="remember-row">
+          <label><input type="checkbox" checked> Keep me signed in on this device</label>
+          <span class="forgot">Forgot password?</span>
+        </div>
+
+        <div class="mfa-note">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.7"/></svg>
+          <span>A one-time code will be sent to your registered municipal number to complete sign-in.</span>
+        </div>
+
+        <button class="submit-btn" onclick="submitLogin()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Sign in to console
+        </button>
+        </div>
+
+        <!-- OTP step, shown after employee ID + password are verified -->
+        <div id="step-otp" style="display:none;">
+          <div class="field">
+            <label>One-time code</label>
+            <div class="otp-row" style="display:flex;gap:8px;margin-bottom:6px;">
+              <input class="otp-box" maxlength="1" inputmode="numeric" style="width:44px;height:50px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;border:1px solid #DDE2DE;border-radius:9px;background:#fff;color:var(--forest-deep);">
+              <input class="otp-box" maxlength="1" inputmode="numeric" style="width:44px;height:50px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;border:1px solid #DDE2DE;border-radius:9px;background:#fff;color:var(--forest-deep);">
+              <input class="otp-box" maxlength="1" inputmode="numeric" style="width:44px;height:50px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;border:1px solid #DDE2DE;border-radius:9px;background:#fff;color:var(--forest-deep);">
+              <input class="otp-box" maxlength="1" inputmode="numeric" style="width:44px;height:50px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;border:1px solid #DDE2DE;border-radius:9px;background:#fff;color:var(--forest-deep);">
+              <input class="otp-box" maxlength="1" inputmode="numeric" style="width:44px;height:50px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;border:1px solid #DDE2DE;border-radius:9px;background:#fff;color:var(--forest-deep);">
+              <input class="otp-box" maxlength="1" inputmode="numeric" style="width:44px;height:50px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;border:1px solid #DDE2DE;border-radius:9px;background:#fff;color:var(--forest-deep);">
+            </div>
+            <div class="hint" style="margin:0;">Sent to your registered municipal number.</div>
+          </div>
+          <button class="submit-btn" onclick="verifyOtp()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Verify &amp; open console
+          </button>
+        </div>
+
+        <div class="toast" id="toast"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="toast-text">Verified — opening your dashboard…</span></div>
+
+        <div class="switch-line">Trouble signing in? <b>Contact your ward IT desk</b></div>
+        <div class="switch-line" style="margin-top:6px;">Reporting an issue as a citizen? <b onclick="location.href='terrasync-citizen-login.html'">Sign in here →</b></div>
+      </div>
+      <div class="foot-note">TerraSync Admin Console · Access is logged and audited</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+document.querySelectorAll('.role-opt').forEach(opt=>{
+  opt.addEventListener('click', ()=>{
+    document.querySelectorAll('.role-opt').forEach(o=>o.classList.remove('selected'));
+    opt.classList.add('selected');
+    document.getElementById('dept-field').style.display = opt.dataset.role === 'dept' ? 'block' : 'none';
+  });
+});
+
+function togglePw(){
+  const inp = document.getElementById('pw-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+let pendingStaffId = null;
+
+function showAdminToast(msg){
+  const t = document.getElementById('toast');
+  document.getElementById('toast-text').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>t.classList.remove('show'), 3200);
+}
+
+async function submitLogin(){
+  const employee_code = document.getElementById('emp-id').value.trim();
+  const password = document.getElementById('pw-input').value;
+  if(!employee_code || !password){ showAdminToast('Enter your employee ID and password'); return; }
+
+  const res = await fetch('/api/staff/login', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ employee_code, password })
+  });
+  const body = await res.json();
+  if(!res.ok){ showAdminToast(body.error || 'Sign-in failed'); return; }
+
+  pendingStaffId = body.staff_id;
+  document.getElementById('step-credentials').style.display = 'none';
+  document.getElementById('step-otp').style.display = 'block';
+  const boxes = document.querySelectorAll('#step-otp .otp-box');
+  boxes.forEach((b,i)=>{
+    b.value='';
+    b.oninput = ()=>{ if(b.value && boxes[i+1]) boxes[i+1].focus(); };
+  });
+  boxes[0].focus();
+
+  if(body.dev_otp){ console.log('[DEV] Admin OTP is', body.dev_otp); }
+}
+
+async function verifyOtp(){
+  const boxes = document.querySelectorAll('#step-otp .otp-box');
+  const otp = Array.from(boxes).map(b=>b.value).join('');
+  if(otp.length !== 6){ showAdminToast('Enter the full 6-digit code'); return; }
+
+  const res = await fetch('/api/staff/verify-otp', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ staff_id: pendingStaffId, otp })
+  });
+  const body = await res.json();
+  if(!res.ok){ showAdminToast(body.error || 'Invalid code'); return; }
+
+  showAdminToast('Verified — opening your dashboard…');
+  setTimeout(()=>{ location.href = 'terrasync-admin-app.html?tab=dashboard'; }, 900);
+}
+</script>
+</body>
+</html>

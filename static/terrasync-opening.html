@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerraSync — Civic pulse, crowdsourced</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#172033;
+    --forest:#166534;
+    --forest-deep:#123B2A;
+    --moss:#0F766E;
+    --amber:#F59E0B;
+    --brick:#DC2626;
+    --leaf:#84CC16;
+    --sky:#2563EB;
+    --purple:#7C3AED;
+    --paper:#F2F0E4;
+    --mist:#CFE0CC;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 82% 12%, rgba(37,99,235,.30), transparent 42%),
+      radial-gradient(circle at 12% 82%, rgba(132,204,22,.20), transparent 45%),
+      radial-gradient(120% 140% at 20% 0%, #1D7A4E 0%, #123B2A 52%, #08160F 100%);
+    color:#fff;
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    position:relative;
+    cursor:pointer;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+
+  /* grain / vignette so the deep gradient doesn't look flat */
+  .vignette{
+    position:fixed;inset:0;pointer-events:none;z-index:1;
+    background:radial-gradient(120% 120% at 50% 50%, transparent 55%, rgba(0,0,0,.35) 100%);
+  }
+
+  /* drifting motes */
+  .motes{position:fixed;inset:0;pointer-events:none;z-index:1;overflow:hidden;}
+  .mote{
+    position:absolute;bottom:-6vh;border-radius:50%;
+    background:var(--leaf);opacity:0;
+    animation:floatUp linear infinite;
+    box-shadow:0 0 6px rgba(132,204,22,.8);
+  }
+  @keyframes floatUp{
+    0%{transform:translateY(0) translateX(0);opacity:0;}
+    8%{opacity:.55;}
+    85%{opacity:.3;}
+    100%{transform:translateY(-108vh) translateX(var(--drift,20px));opacity:0;}
+  }
+
+  .stage{
+    position:relative;z-index:2;
+    width:100%;max-width:600px;
+    padding:40px 28px 46px;
+    display:flex;flex-direction:column;align-items:center;
+    text-align:center;
+  }
+
+  .canopy{width:min(320px,72vw);height:auto;margin-bottom:6px;}
+  .canopy path.branch{fill:none;stroke-linecap:round;}
+  .canopy circle.leaf{opacity:0;transform-origin:center;transform-box:fill-box;}
+  .canopy circle.leaf.show{animation:popIn .55s cubic-bezier(.25,1.4,.4,1) forwards;}
+  .canopy circle.seed{fill:var(--leaf);}
+  @keyframes popIn{
+    0%{opacity:0;transform:scale(0);}
+    65%{opacity:1;transform:scale(1.22);}
+    100%{opacity:1;transform:scale(1);}
+  }
+
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.show{opacity:1;transform:translateY(0);}
+
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;color:#BFE8D5;
+    text-transform:uppercase;letter-spacing:.1em;
+    display:flex;align-items:center;gap:8px;margin-bottom:14px;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--leaf);animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  .wordmark{
+    font-family:'Fraunces',serif;font-weight:600;letter-spacing:-.01em;
+    font-size:clamp(38px,8vw,56px);line-height:1;color:#fff;margin:0 0 14px;
+    display:flex;justify-content:center;
+  }
+  .wordmark span{
+    display:inline-block;opacity:0;transform:translateY(10px);
+    transition:opacity .45s ease,transform .45s ease;
+  }
+  .wordmark span.show{opacity:1;transform:translateY(0);}
+  .wordmark .accent{color:var(--leaf);}
+
+  h1.tagline{
+    font-family:'Fraunces',serif;font-weight:500;font-size:clamp(17px,3vw,21px);
+    line-height:1.35;color:#EAF3E3;max-width:420px;margin:0 0 10px;
+  }
+  .sub{font-size:13.5px;line-height:1.6;color:var(--mist);max-width:400px;margin:0 0 30px;}
+
+  .stats{
+    display:flex;gap:0;border-top:1px solid rgba(255,255,255,.16);
+    border-bottom:1px solid rgba(255,255,255,.16);
+    padding:16px 0;margin-bottom:30px;width:100%;max-width:420px;justify-content:center;
+  }
+  .stat{padding:0 22px;border-right:1px solid rgba(255,255,255,.16);}
+  .stat:last-child{border-right:none;}
+  .stat .num{font-family:'Fraunces',serif;font-size:22px;font-weight:600;color:#fff;}
+  .stat .lbl{font-size:10.5px;color:#B9CBB6;margin-top:2px;letter-spacing:.02em;}
+
+  .cta-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+  .btn{
+    font-family:'Inter',sans-serif;font-weight:700;font-size:14px;
+    padding:13px 22px;border-radius:11px;text-decoration:none;
+    display:inline-flex;align-items:center;gap:8px;
+    transition:transform .15s ease,box-shadow .15s ease,background .15s ease;
+    cursor:pointer;
+  }
+  .btn:hover{transform:translateY(-2px);}
+  .btn-primary{background:var(--leaf);color:#0B241A;box-shadow:0 8px 22px rgba(132,204,22,.28);}
+  .btn-primary:hover{background:#9BDA2B;}
+  .btn-ghost{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.28);}
+  .btn-ghost:hover{background:rgba(255,255,255,.15);}
+
+  .skip-hint{
+    position:fixed;bottom:16px;left:0;right:0;text-align:center;z-index:2;
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(255,255,255,.35);
+    opacity:0;transition:opacity .6s ease .3s;letter-spacing:.03em;
+  }
+  .skip-hint.show{opacity:1;}
+
+  @media(prefers-reduced-motion:reduce){
+    .mote{display:none;}
+    .canopy circle.leaf{animation:none !important;opacity:1;transform:none;}
+    .reveal,.wordmark span{transition:none !important;opacity:1 !important;transform:none !important;}
+  }
+</style>
+</head>
+<body id="stage-body">
+
+<div class="vignette"></div>
+<div class="motes" id="motes"></div>
+
+<div class="stage">
+  <svg class="canopy" viewBox="0 0 320 210" id="canopy-svg" aria-hidden="true">
+    <path id="trunk" class="branch" d="M160,210 L160,132" stroke="#DCEBD8" stroke-width="4"/>
+  </svg>
+
+  <div class="eyebrow reveal" id="el-eyebrow"><span class="dot"></span> CIVIC PULSE, CROWDSOURCED</div>
+
+  <h2 class="wordmark" id="wordmark" aria-label="TerraSync">
+    <span>T</span><span>e</span><span>r</span><span>r</span><span class="accent">a</span><span>S</span><span>y</span><span>n</span><span>c</span>
+  </h2>
+
+  <h1 class="tagline reveal" id="el-tagline">Your street knows what's wrong.<br>Now the city hears it.</h1>
+  <p class="sub reveal" id="el-sub">Report issues in your ward, track them till resolved, and watch the civic canopy grow greener around you.</p>
+
+  <div class="stats reveal" id="el-stats">
+    <div class="stat"><div class="num mono" id="stat-citizens">0</div><div class="lbl">CITIZENS REPORTING</div></div>
+    <div class="stat"><div class="num mono" id="stat-rate">0%</div><div class="lbl">AVG. RESOLUTION RATE</div></div>
+    <div class="stat"><div class="num mono" id="stat-wards">0</div><div class="lbl">WARDS COVERED</div></div>
+  </div>
+
+  <div class="cta-row reveal" id="el-cta">
+    <a class="btn btn-primary" href="/terrasync-citizen-login.html">Report an issue →</a>
+    <a class="btn btn-ghost" href="/terrasync-admin-login.html">Staff sign-in</a>
+  </div>
+</div>
+
+<div class="skip-hint mono" id="skip-hint">tap anywhere to skip the intro</div>
+
+<script>
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- drifting motes ---------- */
+if(!reduced){
+  const motesEl = document.getElementById('motes');
+  const colors = ['#84CC16','#F59E0B','#2563EB'];
+  for(let i=0;i<16;i++){
+    const m = document.createElement('div');
+    m.className = 'mote';
+    const size = 2 + Math.random()*3;
+    m.style.width = size+'px';
+    m.style.height = size+'px';
+    m.style.left = (Math.random()*100)+'vw';
+    m.style.background = colors[i % colors.length];
+    m.style.setProperty('--drift', (Math.random()*60-30)+'px');
+    m.style.animationDuration = (7 + Math.random()*6)+'s';
+    m.style.animationDelay = (Math.random()*6)+'s';
+    motesEl.appendChild(m);
+  }
+}
+
+/* ---------- canopy tree: trunk + branches drawing outward ---------- */
+const svg = document.getElementById('canopy-svg');
+const cx = 160, cyBase = 132;
+const branches = [
+  {angle:-150, len:92, color:'var(--leaf)'},
+  {angle:-100, len:100, color:'#F59E0B'},
+  {angle:-55,  len:96,  color:'#2563EB'},
+  {angle:-20,  len:88,  color:'#7C3AED'},
+  {angle:-118, len:70,  color:'#0F766E'},
+];
+
+function animateDraw(path, duration, delay){
+  const length = path.getTotalLength();
+  path.style.strokeDasharray = length;
+  path.style.strokeDashoffset = reduced ? 0 : length;
+  if(reduced) return;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    path.style.transition = `stroke-dashoffset ${duration}ms cubic-bezier(.4,.05,.2,1) ${delay}ms`;
+    path.style.strokeDashoffset = '0';
+  }));
+}
+
+// trunk
+const trunk = document.getElementById('trunk');
+animateDraw(trunk, 650, 150);
+
+// seed dot at base
+const seed = document.createElementNS('http://www.w3.org/2000/svg','circle');
+seed.setAttribute('cx', cx); seed.setAttribute('cy', cyBase+80);
+seed.setAttribute('r', 6); seed.setAttribute('class','seed');
+svg.appendChild(seed);
+
+// branches + leaves
+branches.forEach((b, i)=>{
+  const ang = (b.angle * Math.PI)/180;
+  const x2 = cx + Math.cos(ang)*b.len;
+  const y2 = (cyBase - 90) + Math.sin(ang)*b.len*0.75;
+  const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+  path.setAttribute('class','branch');
+  path.setAttribute('d', `M${cx},${cyBase-88} Q${cx+(x2-cx)*0.45},${(cyBase-90)+(y2-(cyBase-90))*0.15} ${x2},${y2}`);
+  path.setAttribute('stroke', b.color);
+  path.setAttribute('stroke-width', '3');
+  svg.appendChild(path);
+
+  const delay = 820 + i*160;
+  animateDraw(path, 520, delay);
+
+  const leaf = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  leaf.setAttribute('cx', x2); leaf.setAttribute('cy', y2);
+  leaf.setAttribute('r', 6.5); leaf.setAttribute('fill', b.color);
+  leaf.setAttribute('class','leaf');
+  svg.appendChild(leaf);
+  const leafDelay = delay + 520;
+  if(reduced){ leaf.classList.add('show'); }
+  else { setTimeout(()=>leaf.classList.add('show'), leafDelay); }
+});
+
+/* ---------- text reveal sequence ---------- */
+function reveal(id, at){
+  const el = document.getElementById(id);
+  if(reduced){ el.classList.add('show'); return; }
+  setTimeout(()=>el.classList.add('show'), at);
+}
+
+const wordSpans = document.querySelectorAll('#wordmark span');
+if(reduced){
+  wordSpans.forEach(s=>s.classList.add('show'));
+} else {
+  wordSpans.forEach((s,i)=> setTimeout(()=>s.classList.add('show'), 1500 + i*45));
+}
+
+reveal('el-eyebrow', 1350);
+reveal('el-tagline', 2050);
+reveal('el-sub', 2300);
+reveal('el-stats', 2650);
+reveal('el-cta', 3050);
+reveal('skip-hint', 3200);
+document.getElementById('skip-hint').classList.remove('reveal');
+if(!reduced) setTimeout(()=>document.getElementById('skip-hint').classList.add('show'), 3200);
+else document.getElementById('skip-hint').classList.add('show');
+
+/* ---------- click/tap anywhere to fast-forward ---------- */
+let skipped = false;
+document.body.addEventListener('click', (e)=>{
+  if(e.target.closest('a.btn')) return; // let CTA clicks navigate normally
+  if(skipped) return;
+  skipped = true;
+  document.querySelectorAll('.reveal').forEach(el=>el.classList.add('show'));
+  wordSpans.forEach(s=>s.classList.add('show'));
+  document.querySelectorAll('.canopy .branch').forEach(p=>{
+    p.style.transition = 'none';
+    p.style.strokeDashoffset = '0';
+  });
+  document.querySelectorAll('.canopy .leaf').forEach(l=>l.classList.add('show'));
+  countUp('stat-citizens', 18420, 0, v=>v.toLocaleString());
+  countUp('stat-rate', 72, 0, v=>v+'%');
+  countUp('stat-wards', 21, 0, v=>v);
+});
+
+/* ---------- animated stat count-up ---------- */
+function countUp(id, target, delay, fmt){
+  const el = document.getElementById(id);
+  setTimeout(()=>{
+    if(reduced){ el.textContent = fmt(target); return; }
+    const dur = 900, start = performance.now();
+    function tick(now){
+      const p = Math.min(1, (now-start)/dur);
+      const eased = 1 - Math.pow(1-p, 3);
+      el.textContent = fmt(Math.round(target*eased));
+      if(p<1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }, delay);
+}
+countUp('stat-citizens', 18420, reduced?0:2700, v=>v.toLocaleString());
+countUp('stat-rate', 72, reduced?0:2800, v=>v+'%');
+countUp('stat-wards', 21, reduced?0:2900, v=>v);
+</script>
+
+</body>
+</html>
