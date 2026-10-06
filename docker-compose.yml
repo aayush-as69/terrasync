@@ -1,0 +1,63 @@
+# Local or single-server deployment:
+#   cp env.example .env        (set SECRET_KEY, DB_PASSWORD, GEMINI_API_KEY)
+#   docker compose up -d --build
+#   docker compose run --rm web python seed_data.py --reset      (demo data)
+# App on http://localhost:8000.
+#
+# Public HTTPS (needed for the microphone and GPS to work in browsers):
+#   set DOMAIN=your.domain in .env and point its DNS at the server, then
+#   docker compose --profile https up -d --build
+#   also set WEB_BIND=127.0.0.1 in .env so port 8000 is only reachable via Caddy.
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-change-me-root}
+      MYSQL_DATABASE: ${DB_NAME:-terrasync}
+      MYSQL_USER: ${DB_USER:-terrasync_app}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - dbdata:/var/lib/mysql
+      # Runs once, the first time the volume is created.
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_PORT: "3306"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${WEB_BIND:-0.0.0.0}:8000:8000"
+    volumes:
+      - uploads:/app/static/uploads
+
+  caddy:
+    image: caddy:2
+    profiles: ["https"]
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    depends_on:
+      - web
+
+volumes:
+  dbdata:
+  uploads:
+  caddydata:

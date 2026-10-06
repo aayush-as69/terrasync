@@ -1,0 +1,9 @@
+venv/
+.env
+__pycache__/
+*.pyc
+.DS_Store
+static/uploads/
+
+# Plaintext demo logins written by seed_data.py --export-xlsx; share separately, do not publish
+seed_logins.xlsx

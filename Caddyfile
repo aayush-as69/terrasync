@@ -1,0 +1,5 @@
+# Automatic HTTPS (Let's Encrypt). Set DOMAIN in .env, e.g. demo.example.com
+{$DOMAIN} {
+    encode gzip
+    reverse_proxy web:8000
+}
