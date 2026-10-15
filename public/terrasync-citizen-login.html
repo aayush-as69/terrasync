@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — TerraSync</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FFF7ED;
+    --bg-raised:#FFFFFF;
+    --ink:#172033;
+    --ink-soft:#5B6475;
+    --forest:#166534;
+    --forest-deep:#123B2A;
+    --moss:#0F766E;
+    --amber:#F59E0B;
+    --brick:#DC2626;
+    --leaf:#84CC16;
+    --sky:#2563EB;
+    --purple:#7C3AED;
+    --line:#E7DCCB;
+    --radius:16px;
+    --shadow:0 4px 12px rgba(31,41,55,.06),0 14px 34px rgba(31,41,55,.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:linear-gradient(180deg,#FFF7ED 0%,#F8FAFC 48%,#F0FDF4 100%);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  ::selection{background:#A7F3D0;color:#064E3B;}
+  h1,h2,h3,.display{font-family:'Fraunces',serif;font-weight:600;letter-spacing:-0.01em;color:var(--forest-deep);margin:0;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:inherit;}
+
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:20px 24px;max-width:1180px;margin:0 auto;
+    border-bottom:1px solid #E8DCC9;
+  }
+  .brand{display:flex;align-items:center;gap:12px;text-decoration:none;}
+  .brand-mark{
+    width:38px;height:38px;border-radius:10px;
+    background:linear-gradient(135deg,#166534,#0F766E 65%,#2563EB);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .brand-mark svg{width:22px;height:22px;}
+  .brand-text .name{font-family:'Fraunces',serif;font-size:19px;font-weight:600;color:var(--forest-deep);line-height:1.1;}
+  .brand-text .sub{font-size:11.5px;color:var(--ink-soft);letter-spacing:.04em;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;}
+  .team-badge{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#0F766E;
+    background:#ECFDF5;border:1px solid #A7F3D0;padding:6px 12px;border-radius:100px;
+    display:flex;gap:8px;align-items:center;
+  }
+  .team-badge b{color:#166534;}
+  @media(max-width:640px){.team-badge{display:none;}}
+
+  /* ---------- Split shell ---------- */
+  .wrap{
+    max-width:1180px;margin:0 auto;padding:48px 24px 60px;
+    display:grid;grid-template-columns:1.05fr 1fr;gap:44px;align-items:stretch;
+    min-height:calc(100vh - 82px);
+  }
+  @media(max-width:900px){.wrap{grid-template-columns:1fr;padding-top:32px;}}
+
+  /* ---------- Left panel ---------- */
+  .intro{
+    border-radius:24px;padding:44px 40px;color:#fff;
+    background:radial-gradient(120% 140% at 15% 10%, #1D7A4E 0%, #123B2A 55%, #0B241A 100%);
+    display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;
+  }
+  .intro::before{
+    content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(circle at 85% 18%, rgba(37,99,235,.28), transparent 40%),
+      radial-gradient(circle at 70% 85%, rgba(132,204,22,.22), transparent 45%);
+    pointer-events:none;
+  }
+  .intro-top{position:relative;z-index:1;}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;color:#BFE8D5;
+    text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:#84CC16;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  .intro h1{color:#fff;font-size:clamp(28px,3.4vw,38px);line-height:1.14;max-width:420px;}
+  .intro p{color:#CFE0CC;font-size:14.5px;line-height:1.6;margin-top:14px;max-width:380px;}
+
+  .canopy-wrap{position:relative;z-index:1;margin:26px 0;min-height:180px;display:flex;align-items:center;justify-content:center;}
+
+  .intro-stats{
+    position:relative;z-index:1;display:flex;gap:0;border-top:1px solid rgba(255,255,255,.16);padding-top:20px;
+  }
+  .istat{padding-right:26px;margin-right:26px;border-right:1px solid rgba(255,255,255,.16);}
+  .istat:last-child{border-right:none;margin-right:0;padding-right:0;}
+  .istat .num{font-family:'Fraunces',serif;font-size:23px;color:#fff;font-weight:600;}
+  .istat .lbl{font-size:11px;color:#B9CBB6;margin-top:2px;}
+
+  .quote{
+    position:relative;z-index:1;margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,.16);
+    font-size:13.5px;color:#DCEBD8;line-height:1.55;font-style:italic;
+  }
+  .quote b{font-style:normal;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11.5px;display:block;margin-top:8px;letter-spacing:.02em;}
+
+  /* ---------- Right panel: form ---------- */
+  .form-panel{display:flex;flex-direction:column;justify-content:center;}
+  .form-card{
+    background:var(--bg-raised);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:36px 34px;
+    background-image:linear-gradient(145deg,#fff 0%,#F0FDF4 100%);
+  }
+  .form-card h2{font-size:23px;}
+  .form-card .hint{font-size:13.5px;color:var(--ink-soft);margin-top:6px;margin-bottom:26px;}
+
+  .method-toggle{display:flex;background:#F1EFE4;border:1px solid var(--line);border-radius:11px;padding:4px;margin-bottom:22px;}
+  .method-btn{
+    flex:1;text-align:center;padding:9px 6px;border-radius:8px;border:none;background:none;cursor:pointer;
+    font-family:'Inter',sans-serif;font-weight:700;font-size:13px;color:var(--ink-soft);transition:.15s;
+  }
+  .method-btn.active{background:#fff;color:var(--forest-deep);box-shadow:0 2px 6px rgba(31,41,55,.08);}
+
+  label{font-size:12px;font-weight:700;color:#166534;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em;}
+  .field{margin-bottom:16px;}
+  .phone-row{display:flex;gap:8px;}
+  .cc{
+    width:76px;flex-shrink:0;font-family:'IBM Plex Mono',monospace;font-size:14px;text-align:center;
+    padding:11px 4px;border:1px solid #D9E2EC;border-radius:9px;background:#fff;color:var(--ink);
+  }
+  input[type=text]:not(.cc),input[type=password],input[type=tel]:not(.cc),select{
+    width:100%;font-family:'Inter',sans-serif;font-size:14.5px;padding:11px 12px;
+    border:1px solid #D9E2EC;border-radius:9px;background:#fff;color:var(--ink);
+  }
+  input:focus,select:focus{outline:2px solid #A7F3D0;outline-offset:1px;border-color:#0F766E;}
+  .otp-row{display:flex;gap:8px;margin-bottom:6px;}
+  .otp-box{
+    width:44px;height:50px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;
+    border:1px solid #D9E2EC;border-radius:9px;background:#fff;color:var(--forest-deep);
+  }
+  .otp-box:focus{outline:2px solid #A7F3D0;border-color:#0F766E;}
+  .resend{font-size:12.5px;color:var(--ink-soft);margin-top:6px;}
+  .resend b{color:#0F766E;cursor:pointer;font-weight:700;}
+
+  .remember-row{display:flex;justify-content:space-between;align-items:center;margin:4px 0 18px;font-size:12.5px;color:var(--ink-soft);}
+  .remember-row label{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink-soft);margin:0;cursor:pointer;}
+  .remember-row input[type=checkbox]{width:15px;height:15px;accent-color:#166534;}
+  .forgot{color:#0F766E;font-weight:600;text-decoration:none;cursor:pointer;}
+
+  .submit-btn{
+    width:100%;background:linear-gradient(135deg,#166534,#0F766E);color:#fff;border:none;padding:13px;border-radius:9px;
+    font-weight:700;font-size:14.5px;cursor:pointer;transition:.15s;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 8px 18px rgba(15,118,110,.2);
+  }
+  .submit-btn:hover{background:linear-gradient(135deg,#14532D,#115E59);}
+  .submit-btn:disabled{opacity:.7;cursor:default;}
+
+  .divider{display:flex;align-items:center;gap:12px;margin:22px 0;color:var(--ink-soft);font-size:12px;}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line);}
+
+  .guest-btn{
+    width:100%;background:#fff;border:1px solid var(--line);color:var(--forest-deep);padding:12px;border-radius:9px;
+    font-weight:700;font-size:13.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .guest-btn:hover{border-color:#0F766E;background:#F0FDFA;}
+
+  .switch-line{text-align:center;font-size:13px;color:var(--ink-soft);margin-top:22px;}
+  .switch-line b{color:#0F766E;cursor:pointer;font-weight:700;}
+
+  .toast{
+    display:none;margin-top:16px;padding:12px 14px;background:#ECFDF5;border:1px solid #A7F3D0;
+    border-radius:9px;font-size:13px;color:#166534;align-items:center;gap:8px;
+  }
+  .toast.show{display:flex;animation:fade .2s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  footer{max-width:1180px;margin:0 auto;padding:0 24px 30px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  footer .f{font-size:11.5px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brand" href="#">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 21C7 21 4 17 4 12.5C4 8 7 4 12 3C13 8 16 8.5 16 12.5C16 17 15 21 12 21Z" stroke="#F2F0E4" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 21V10" stroke="#F2F0E4" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </div>
+    <div class="brand-text">
+      <div class="name">TerraSync</div>
+      <div class="sub">Civic pulse, crowdsourced</div>
+    </div>
+  </a>
+  <div class="team-badge"><b>Live</b> &nbsp;·&nbsp; Clean &amp; Green Cities</div>
+</div>
+
+<div class="wrap">
+  <!-- LEFT: brand / civic canopy -->
+  <div class="intro">
+    <div class="intro-top">
+      <div class="eyebrow"><span class="dot"></span> CITIZEN ACCESS</div>
+      <h1>Your street knows what's wrong.<br>Now the city hears it.</h1>
+      <p>Sign in to report issues in your ward, track them till resolved, and see the civic canopy grow greener around you.</p>
+    </div>
+
+    <div class="canopy-wrap" id="canopy-wrap"></div>
+
+    <div>
+      <div class="intro-stats">
+        <div class="istat"><div class="num">18,420</div><div class="lbl">Citizens reporting</div></div>
+        <div class="istat"><div class="num">72%</div><div class="lbl">Avg. resolution rate</div></div>
+        <div class="istat"><div class="num">21</div><div class="lbl">Wards covered</div></div>
+      </div>
+      <div class="quote">
+        "Reported a broken streetlight on my way home — it was fixed in four days. First time I felt a complaint actually went somewhere."
+        <b>— Meera Kaur, Ward 14</b>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: form -->
+  <div class="form-panel">
+    <div class="form-card">
+      <h2>Sign in to your account</h2>
+      <div class="hint">Report civic issues, upvote what matters, track resolutions near you.</div>
+
+      <div class="method-toggle">
+        <button class="method-btn active" id="btn-otp" onclick="setMethod('otp')">Phone · OTP</button>
+        <button class="method-btn" id="btn-pass" onclick="setMethod('pass')">Email · Password</button>
+      </div>
+
+      <!-- OTP flow -->
+      <div id="panel-otp">
+        <div id="otp-step-phone">
+          <div class="field">
+            <label>Mobile number</label>
+            <div class="phone-row">
+              <input class="cc mono" type="text" value="+91" readonly>
+              <input type="tel" placeholder="98765 43210" maxlength="10" id="phone-input">
+            </div>
+          </div>
+          <button class="submit-btn" onclick="sendOtp()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Send OTP
+          </button>
+        </div>
+
+        <div id="otp-step-code" style="display:none;">
+          <div class="field">
+            <label>Enter 6-digit code</label>
+            <div class="otp-row">
+              <input class="otp-box" maxlength="1" inputmode="numeric">
+              <input class="otp-box" maxlength="1" inputmode="numeric">
+              <input class="otp-box" maxlength="1" inputmode="numeric">
+              <input class="otp-box" maxlength="1" inputmode="numeric">
+              <input class="otp-box" maxlength="1" inputmode="numeric">
+              <input class="otp-box" maxlength="1" inputmode="numeric">
+            </div>
+            <div class="resend">Sent to <span class="mono" id="otp-sent-to">+91 •• ••• ••210</span> · <b onclick="sendOtp()">Resend code</b></div>
+          </div>
+          <button class="submit-btn" onclick="submitLogin()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Verify &amp; continue
+          </button>
+        </div>
+      </div>
+
+      <!-- Password flow -->
+      <div id="panel-pass" style="display:none;">
+        <form id="loginForm">
+          <div class="field">
+            <label>Email address</label>
+            <input type="text" id="loginEmail" placeholder="you@example.com">
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" id="loginPassword" placeholder="••••••••••">
+          </div>
+          <div class="remember-row">
+            <label><input type="checkbox"> Keep me signed in</label>
+            <span class="forgot">Forgot password?</span>
+          </div>
+          <button type="submit" class="submit-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Sign in
+          </button>
+        </form>
+      </div>
+
+      <!-- Register flow -->
+      <div id="panel-register" style="display:none;">
+        <form id="registerForm">
+            <div class="field">
+              <label>Full Name</label>
+              <input type="text" id="registerName" placeholder="Meera Kaur" required>
+            </div>
+            <div class="field">
+              <label>Mobile number</label>
+              <div class="phone-row">
+                <input class="cc mono" type="text" value="+91" readonly>
+                <input type="tel" id="registerPhone" placeholder="98765 43210" maxlength="10" required>
+              </div>
+            </div>
+            <div class="field">
+              <label>Email address</label>
+              <input type="email" id="registerEmail" placeholder="you@example.com" required>
+            </div>
+            <div class="field">
+              <label>Password</label>
+              <input type="password" id="registerPassword" placeholder="••••••••••" required>
+            </div>
+            <button type="submit" class="submit-btn">
+              Create Account
+            </button>
+        </form>
+      </div>
+
+      <div class="toast" id="toast"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="toast-text">Signed in — redirecting to your feed…</span></div>
+
+      <div class="divider">or</div>
+      <button class="guest-btn" onclick="showToast('Continuing as guest — reporting only, no history saved.', 'terrasync-citizen-app.html?tab=report')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 12c2.5 0 4.5-2 4.5-4.5S14.5 3 12 3 7.5 5 7.5 7.5 9.5 12 12 12Z" stroke="currentColor" stroke-width="1.8"/><path d="M4 21c1-4 4.5-6.5 8-6.5s7 2.5 8 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Continue as guest
+      </button>
+
+      <div class="switch-line" id="show-register-text">New to TerraSync? <b onclick="setMethod('register')">Create an account</b></div>
+      <div class="switch-line" id="show-login-text" style="display:none;">Already have an account? <b onclick="setMethod('pass')">Sign in</b></div>
+      <div class="switch-line" style="margin-top:6px;">Ward officer or admin? <b onclick="location.href='terrasync-admin-login.html'">Sign in here →</b></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="f">TerraSync · Prototype build — data shown is illustrative</div>
+  <div class="f">Clean &amp; Green Cities Initiative</div>
+</footer>
+
+<script>
+function setMethod(m){
+  document.getElementById('btn-otp').classList.toggle('active', m==='otp');
+  document.getElementById('btn-pass').classList.toggle('active', m==='pass' || m==='register');
+
+  document.getElementById('panel-otp').style.display = m==='otp' ? 'block' : 'none';
+  document.getElementById('panel-pass').style.display = m==='pass' ? 'block' : 'none';
+  document.getElementById('panel-register').style.display = m==='register' ? 'block' : 'none';
+
+  // Toggle the text at the bottom
+  document.getElementById('show-register-text').style.display = m==='register' ? 'none' : 'block';
+  document.getElementById('show-login-text').style.display = m==='register' ? 'block' : 'none';
+}
+
+let currentPhone = '';
+
+async function sendOtp(){
+  const num = document.getElementById('phone-input').value.trim();
+  if(!num){ document.getElementById('phone-input').focus(); return; }
+  currentPhone = '+91' + num.replace(/\D/g,'');
+
+  const res = await fetch('/api/citizen/send-otp', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ phone: currentPhone })
+  });
+  const body = await res.json();
+  if(!res.ok){ showToast(body.error || 'Could not send code'); return; }
+
+  document.getElementById('otp-sent-to').textContent = body.phone_masked;
+  document.getElementById('otp-step-phone').style.display = 'none';
+  document.getElementById('otp-step-code').style.display = 'block';
+  const boxes = document.querySelectorAll('.otp-box');
+  boxes.forEach((b,i)=>{
+    b.value='';
+    b.oninput = ()=>{ if(b.value && boxes[i+1]) boxes[i+1].focus(); };
+  });
+  boxes[0].focus();
+
+  if(body.dev_otp){ console.log('[DEV] OTP for', currentPhone, 'is', body.dev_otp); }
+}
+
+async function submitLogin(){
+  const boxes = document.querySelectorAll('.otp-box');
+  const otp = Array.from(boxes).map(b=>b.value).join('');
+  if(otp.length !== 6){
+    showToast('Enter the full code'); return;
+  }
+
+  const res = await fetch('/api/citizen/verify-otp', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ phone: currentPhone, otp })
+  });
+  const body = await res.json();
+  if(!res.ok){ showToast(body.error || 'Invalid code'); return; }
+
+  showToast('Signed in — redirecting to your feed…');
+  setTimeout(()=>{ location.href = 'terrasync-citizen-app.html?tab=feed'; }, 900);
+}
+
+function showToast(msg, redirect){
+  const t = document.getElementById('toast');
+  document.getElementById('toast-text').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>t.classList.remove('show'), 3200);
+  if(redirect){ setTimeout(()=>{ location.href = redirect; }, 900); }
+}
+
+// Handle Email/Password Login
+document.getElementById('loginForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    const payload = {
+        email: document.getElementById('loginEmail').value,
+        password: document.getElementById('loginPassword').value
+    };
+
+    const res = await fetch('/api/citizen/login-email', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+
+    const body = await res.json();
+    if(!res.ok){
+        showToast(body.error || 'Login failed');
+        return;
+    }
+
+    showToast('Signed in — redirecting to your feed…');
+    setTimeout(()=>{ location.href = 'terrasync-citizen-app.html?tab=home'; }, 900);
+});
+
+// Handle Email/Password Registration
+document.getElementById('registerForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    const payload = {
+        name: document.getElementById('registerName').value,
+        phone: '+91' + document.getElementById('registerPhone').value.replace(/\D/g,''),
+        email: document.getElementById('registerEmail').value,
+        password: document.getElementById('registerPassword').value
+    };
+
+    const res = await fetch('/api/citizen/register', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+
+    const body = await res.json();
+    if(!res.ok){
+        showToast(body.error || 'Registration failed');
+        return;
+    }
+
+    showToast("Account created successfully! You can now log in.");
+    document.getElementById('registerForm').reset();
+    setMethod('pass'); // Switch view back to password login
+});
+
+/* Civic canopy mini signature, mirrored from the main dashboard's motif */
+function renderCanopy(){
+  const wards = [
+    {name:'Ward 9', health:0.8},
+    {name:'Ward 14', health:0.5},
+    {name:'Ward 21', health:0.3}
+  ];
+  const cx=150, cy=95;
+  const angles=[-100,-20,60];
+  let branches='', nodes='';
+  wards.forEach((w,idx)=>{
+    const ang=(angles[idx]*Math.PI)/180, len=78;
+    const x2=cx+Math.cos(ang)*len, y2=cy+Math.sin(ang)*len;
+    const color = w.health>0.6 ? '#84CC16' : w.health>0.3 ? '#F59E0B' : '#F87171';
+    branches += `<path d="M${cx},${cy} Q${cx+(x2-cx)*0.5},${cy+(y2-cy)*0.2} ${x2},${y2}" stroke="${color}" stroke-width="${2.5+w.health*3.5}" fill="none" stroke-linecap="round" opacity="0.9"/>`;
+    nodes += `<circle cx="${x2}" cy="${y2}" r="7" fill="${color}"/><text x="${x2}" y="${y2+18}" text-anchor="middle" font-size="9" font-family="IBM Plex Mono" fill="#CFE0CC">${w.name}</text>`;
+  });
+  document.getElementById('canopy-wrap').innerHTML = `
+  <svg viewBox="0 0 300 180" width="100%" height="170">
+    <circle cx="${cx}" cy="${cy}" r="11" fill="#84CC16"/>
+    ${branches}
+    ${nodes}
+  </svg>`;
+}
+renderCanopy();
+</script>
+</body>
+</html>

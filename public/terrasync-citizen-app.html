@@ -1,0 +1,2061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerraSync — Report &amp; Track Issues</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<style>
+  :root{
+    --bg:#F2F0E4;
+    --bg-raised:#FBFAF4;
+    --ink:#1B2119;
+    --ink-soft:#4B5A4E;
+    --forest:#1B4332;
+    --forest-deep:#122E22;
+    --moss:#52796F;
+    --amber:#D68C45;
+    --brick:#B5473F;
+    --leaf:#7FB069;
+    --line:#D8D3C0;
+    --radius:14px;
+    --shadow: 0 1px 2px rgba(27,33,25,0.06), 0 8px 24px rgba(27,33,25,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  ::selection{background:var(--leaf);color:var(--forest-deep);}
+  h1,h2,h3,.display{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    letter-spacing:-0.01em;
+    color:var(--forest-deep);
+    margin:0;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+
+  /* ---------- Shell ---------- */
+  .shell{max-width:1180px;margin:0 auto;padding:0 24px 80px;}
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:22px 24px;max-width:1180px;margin:0 auto;
+    border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{
+    width:38px;height:38px;border-radius:10px;background:var(--forest);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .brand-mark svg{width:22px;height:22px;}
+  .brand-text .name{font-family:'Fraunces',serif;font-size:19px;font-weight:600;color:var(--forest-deep);line-height:1.1;}
+  .brand-text .sub{font-size:11.5px;color:var(--ink-soft);letter-spacing:.04em;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;}
+  .team-badge{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--forest);
+    background:#E4E9DE;border:1px solid #C9D4BD;padding:6px 12px;border-radius:100px;
+    display:flex;gap:8px;align-items:center;
+  }
+  .team-badge b{color:var(--forest-deep);}
+  @media(max-width:640px){.team-badge{display:none;}}
+
+  /* ---------- Hero ---------- */
+  .hero{padding:56px 0 40px;border-bottom:1px solid var(--line);}
+  .hero-top{display:flex;gap:44px;align-items:center;}
+  .hero-content{flex:1;min-width:0;}
+  .hero-visual{width:280px;flex-shrink:0;}
+  .hero-visual svg{width:100%;height:auto;display:block;}
+  @media(max-width:880px){
+    .hero-top{flex-direction:column-reverse;}
+    .hero-visual{width:100%;max-width:320px;margin:0 auto;}
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--moss);
+    text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--leaf);animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  .hero h1{font-size:clamp(30px,4.4vw,44px);line-height:1.12;max-width:640px;}
+  .hero p.lede{font-size:15.5px;color:var(--ink-soft);max-width:600px;margin-top:16px;line-height:1.6;}
+  .hero-stats{display:flex;gap:0;margin-top:34px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:22px;}
+  .hstat{padding-right:34px;margin-right:34px;border-right:1px solid var(--line);}
+  .hstat:last-child{border-right:none;}
+  .hstat .num{font-family:'Fraunces',serif;font-size:28px;color:var(--forest-deep);font-weight:600;}
+  .hstat .lbl{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+
+  /* ---------- Tabs ---------- */
+  .tabs{
+    display:flex;gap:4px;margin-top:34px;border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:var(--bg);z-index:20;padding-top:20px;
+  }
+  .tab-btn{
+    font-family:'Inter',sans-serif;font-weight:600;font-size:14px;color:var(--ink-soft);
+    background:none;border:none;padding:12px 18px;cursor:pointer;border-bottom:2px solid transparent;
+    margin-bottom:-1px;transition:.15s;white-space:nowrap;
+  }
+  .tab-btn:hover{color:var(--forest);}
+  .tab-btn.active{color:var(--forest-deep);border-bottom-color:var(--forest);}
+  .tab-panel{display:none;padding-top:32px;animation:fade .25s ease;}
+  .tab-panel.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  /* ---------- Cards / general ---------- */
+  .card{
+    background:var(--bg-raised);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);
+  }
+  .grid-2{display:grid;grid-template-columns:1fr;gap:22px;}
+  @media(max-width:860px){.grid-2{grid-template-columns:1fr;}}
+
+  /* ---------- Report form ---------- */
+  .form-card{padding:26px;}
+  .form-card h2{font-size:21px;margin-bottom:4px;}
+  .form-card .hint{font-size:13px;color:var(--ink-soft);margin-bottom:22px;}
+  label{font-size:12.5px;font-weight:600;color:var(--forest-deep);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em;}
+  .field{margin-bottom:18px;}
+  input[type=text],textarea,select{
+    width:100%;font-family:'Inter',sans-serif;font-size:14.5px;padding:11px 12px;
+    border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);
+  }
+  input[type=text]:focus,textarea:focus,select:focus{outline:2px solid var(--leaf);outline-offset:1px;border-color:var(--moss);}
+  textarea{resize:vertical;min-height:76px;}
+  .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  @media(max-width:520px){.cat-grid{grid-template-columns:repeat(2,1fr);}}
+  .cat-opt{
+    border:1px solid var(--line);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;
+    background:#fff;transition:.12s;
+  }
+  .cat-opt svg{width:20px;height:20px;margin-bottom:4px;color:var(--moss);}
+  .cat-opt span{display:block;font-size:11px;font-weight:600;color:var(--ink-soft);}
+  .cat-opt.selected{border-color:var(--forest);background:#E4E9DE;}
+  .cat-opt.selected svg,.cat-opt.selected span{color:var(--forest-deep);}
+  .sev-row{display:flex;gap:8px;}
+  .sev-opt{
+    flex:1;text-align:center;padding:9px 6px;border-radius:9px;border:1px solid var(--line);
+    font-size:12.5px;font-weight:600;cursor:pointer;background:#fff;color:var(--ink-soft);
+  }
+  .sev-opt.selected.low{background:#EAF2E2;border-color:var(--leaf);color:var(--forest-deep);}
+  .sev-opt.selected.med{background:#FBEEDD;border-color:var(--amber);color:#8A5423;}
+  .sev-opt.selected.high{background:#F7E1DF;border-color:var(--brick);color:#7A2E29;}
+  .upload{
+    border:1.5px dashed var(--line);border-radius:10px;padding:18px;text-align:center;
+    color:var(--ink-soft);font-size:13px;background:#fff;cursor:pointer;
+  }
+  .upload:hover{border-color:var(--moss);}
+  .loc-row{display:flex;gap:8px;}
+  .loc-row input[type=text]{flex:1;}
+  .loc-btn{
+    flex:0 0 auto;width:42px;border:1px solid var(--line);border-radius:9px;background:#fff;
+    font-size:16px;cursor:pointer;transition:.12s;
+  }
+  .loc-btn:hover{border-color:var(--moss);}
+  .loc-btn:disabled{opacity:.5;cursor:default;}
+  .loc-btn.spin{animation:loc-spin 1s linear infinite;}
+  @keyframes loc-spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+  .loc-status{margin-top:6px;display:flex;align-items:center;gap:5px;}
+  .loc-status.ok{color:var(--moss);}
+  .loc-status.err{color:var(--brick);}
+  .submit-btn{
+    width:100%;background:var(--forest);color:#fff;border:none;padding:13px;border-radius:9px;
+    font-weight:700;font-size:14.5px;cursor:pointer;margin-top:6px;transition:.15s;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .submit-btn:hover{background:var(--forest-deep);}
+  .toast{
+    display:none;margin-top:14px;padding:11px 14px;background:#E4E9DE;border:1px solid #C9D4BD;
+    border-radius:9px;font-size:13px;color:var(--forest-deep);
+  }
+  .toast.show{display:block;animation:fade .2s ease;}
+
+
+  /* ---------- Smart civic ticket (Field / AI Output table) ---------- */
+  .ticket{background:#F4F6FB;border:1px solid #D5DBEA;border-radius:16px;padding:14px;margin:10px 0;box-shadow:0 1px 2px rgba(27,33,25,.05);}
+  .ticket-head{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+  .ticket-step{flex:none;width:34px;height:34px;border-radius:50%;background:#3B82F6;display:flex;align-items:center;justify-content:center;}
+  .ticket-title{font-family:'Fraunces',serif;font-weight:700;font-size:15px;letter-spacing:.02em;color:#1C2760;text-transform:uppercase;line-height:1.1;}
+  .ticket-sub{display:inline-block;margin-top:4px;padding:2px 8px;border:1.5px solid #6B7280;background:#EEF1FA;font-weight:700;font-size:12px;letter-spacing:.03em;color:#3B82F6;text-transform:uppercase;}
+  .ticket-photo{display:block;width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin:0 0 10px;border:1px solid #D5DBEA;}
+  .ticket-actions{display:flex;justify-content:flex-end;margin-top:10px;}
+  .ticket-share{font:600 12.5px 'Inter',sans-serif;color:#fff;background:#1C2760;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;}
+  .ticket-share:disabled{opacity:.6;cursor:default;}
+  .ticket-id{margin-left:auto;font:600 11.5px 'IBM Plex Mono',monospace;color:#4B5A7A;}
+  .ticket-table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #D5DBEA;border-radius:6px;overflow:hidden;font-size:13.5px;}
+  .ticket-table thead th{background:#1C2760;color:#fff;text-align:left;font-weight:700;padding:10px 12px;font-size:13px;}
+  .ticket-table th[scope=row]{width:38%;text-align:left;font-weight:700;color:#4B5A7A;padding:10px 12px;}
+  .ticket-table td{padding:10px 12px;color:#1C2233;}
+  .ticket-table tbody tr:nth-child(even){background:#EEF1FA;}
+  .ticket-table tbody tr+tr th,.ticket-table tbody tr+tr td{border-top:1px solid #E1E6F2;}
+  .ticket-pri{font-weight:800;letter-spacing:.02em;}
+  .ticket-pri.high{color:#D62828;} .ticket-pri.med{color:#C77700;} .ticket-pri.low{color:#2E7D32;}
+  .ticket-note{margin-top:10px;font-size:12.5px;color:var(--ink-soft);line-height:1.5;}
+
+  /* ---------- Map / canopy signature ---------- */
+  .canopy-card{padding:22px;display:flex;flex-direction:column;}
+  .canopy-card h3{font-size:15px;margin-bottom:2px;}
+  .canopy-card .hint{font-size:12.5px;color:var(--ink-soft);margin-bottom:12px;}
+  .canopy-wrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:230px;}
+
+  /* ---------- Feed ---------- */
+  .feed-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .filter-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .chip{
+    font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:100px;border:1px solid var(--line);
+    background:#fff;cursor:pointer;color:var(--ink-soft);
+  }
+  .chip.active{background:var(--forest);color:#fff;border-color:var(--forest);}
+  .issue-list{display:flex;flex-direction:column;gap:12px;}
+  .issue{
+    padding:16px 18px;display:flex;gap:14px;align-items:flex-start;
+  }
+  .issue-icon{
+    width:38px;height:38px;border-radius:9px;background:#E4E9DE;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .issue-icon svg{width:19px;height:19px;color:var(--forest);}
+  .issue-body{flex:1;min-width:0;}
+  .issue-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+  .issue-title{font-weight:700;font-size:14.5px;color:var(--forest-deep);}
+  .issue-meta{font-size:12px;color:var(--ink-soft);margin-top:2px;font-family:'IBM Plex Mono',monospace;}
+  .issue-desc{font-size:13px;color:var(--ink-soft);margin-top:6px;line-height:1.5;}
+  .status-pill{
+    font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:100px;white-space:nowrap;
+    text-transform:uppercase;letter-spacing:.03em;
+  }
+  .status-Reported{background:#F7E1DF;color:#7A2E29;}
+  .status-Acknowledged{background:#FBEEDD;color:#8A5423;}
+  .status-InProgress{background:#DDEAF5;color:#2A5A82;}
+  .status-Resolved{background:#E0EEDA;color:#2F5A3C;}
+  .status-Verified{background:#CFE8D5;color:#1F4A2D;}
+  .issue-actions{display:flex;align-items:center;gap:14px;margin-top:10px;}
+  .upvote{
+    display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--moss);
+    background:#EFF3E9;border:1px solid #DDE6D3;padding:6px 11px;border-radius:100px;cursor:pointer;
+  }
+  .upvote:hover{background:#E4E9DE;}
+  .upvote svg{width:13px;height:13px;}
+  .meta-chip{font-size:11.5px;color:var(--ink-soft);display:flex;align-items:center;gap:4px;}
+
+  /* ---------- Dashboard ---------- */
+  .stat-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px;}
+  @media(max-width:820px){.stat-cards{grid-template-columns:repeat(2,1fr);}}
+  .stat-card{padding:18px;}
+  .stat-card .num{font-family:'Fraunces',serif;font-size:26px;color:var(--forest-deep);}
+  .stat-card .lbl{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+  .stat-card .delta{font-size:11.5px;color:var(--moss);margin-top:6px;font-weight:600;}
+  .kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  @media(max-width:900px){.kanban{grid-template-columns:1fr;}}
+  .kcol{background:#EDEADC;border-radius:var(--radius);padding:12px;min-height:200px;}
+  .kcol h4{font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft);margin-bottom:10px;display:flex;justify-content:space-between;}
+  .kcard{
+    background:var(--bg-raised);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px;
+    box-shadow:var(--shadow);
+  }
+  .kcard .t{font-weight:700;font-size:13px;color:var(--forest-deep);}
+  .kcard .m{font-size:11px;color:var(--ink-soft);margin-top:4px;font-family:'IBM Plex Mono',monospace;}
+  .kcard button{
+    margin-top:9px;width:100%;font-size:11.5px;font-weight:700;background:var(--forest);color:#fff;
+    border:none;padding:7px;border-radius:7px;cursor:pointer;
+  }
+  .kcard button:hover{background:var(--forest-deep);}
+  .kcard button.done{background:#C9D4BD;color:#4B5A4E;cursor:default;}
+
+  /* ---------- Analytics ---------- */
+  .analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;}
+  @media(max-width:860px){.analytics-grid{grid-template-columns:1fr;}}
+  .chart-card{padding:22px;}
+  .chart-card h3{font-size:15px;margin-bottom:16px;}
+  .chart-legend{display:flex;gap:16px;margin-bottom:12px;font-size:11.5px;color:var(--ink-soft);}
+  .chart-legend .dot-lbl{display:inline-flex;align-items:center;gap:5px;}
+  .chart-legend .sw{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .bar-label{width:110px;font-size:12px;color:var(--ink-soft);flex-shrink:0;}
+  .bar-track{flex:1;height:14px;background:#EDEADC;border-radius:100px;overflow:hidden;display:flex;}
+  .bar-fill{height:100%;background:linear-gradient(90deg,var(--moss),var(--leaf));}
+  .bar-val{width:26px;text-align:right;font-size:12px;font-weight:700;color:var(--forest-deep);font-family:'IBM Plex Mono',monospace;flex-shrink:0;}
+  .bar-val.wide{width:74px;}
+  .eco-box{
+    background:var(--forest);color:#fff;border-radius:var(--radius);padding:22px;
+  }
+  .eco-box h3{color:#fff;font-size:15px;margin-bottom:4px;}
+  .eco-box .hint{color:#B9CBB6;font-size:12.5px;margin-bottom:18px;}
+  .eco-metric{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(255,255,255,.14);}
+  .eco-metric:first-of-type{border-top:none;}
+  .eco-metric .l{font-size:12.5px;color:#CFE0CC;}
+  .eco-metric .v{font-family:'Fraunces',serif;font-size:17px;}
+
+  footer{margin-top:60px;padding-top:22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  footer .f{font-size:11.5px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;}
+
+  /* ---------- Color refresh ---------- */
+  :root{
+    --bg:#FFF7ED;
+    --bg-raised:#FFFFFF;
+    --ink:#172033;
+    --ink-soft:#5B6475;
+    --forest:#166534;
+    --forest-deep:#123B2A;
+    --moss:#0F766E;
+    --amber:#F59E0B;
+    --brick:#DC2626;
+    --leaf:#84CC16;
+    --sky:#2563EB;
+    --purple:#7C3AED;
+    --pink:#DB2777;
+    --line:#E7DCCB;
+    --radius:16px;
+    --shadow:0 4px 12px rgba(31,41,55,.06),0 14px 34px rgba(31,41,55,.08);
+  }
+  body{background:linear-gradient(180deg,#FFF7ED 0%,#F8FAFC 48%,#F0FDF4 100%);}
+  ::selection{background:#A7F3D0;color:#064E3B;}
+  .topbar{border-bottom-color:#E8DCC9;}
+  .brand-mark{background:linear-gradient(135deg,#166534,#0F766E 65%,#2563EB);}
+  .team-badge{
+    color:#0F766E;background:#ECFDF5;border-color:#A7F3D0;
+  }
+  .team-badge b{color:#166534;}
+  .hero{border-bottom-color:#E8DCC9;}
+  .eyebrow{color:#7C3AED;}
+  .eyebrow .dot{background:#F59E0B;}
+  .hero h1{color:#123B2A;}
+  .hero-stats{border-top-color:#E8DCC9;}
+  .hstat{border-right-color:#E8DCC9;}
+  .hstat .num{color:#123B2A;}
+
+  .tabs{
+    border-bottom-color:#E8DCC9;
+    background:rgba(255,247,237,.94);
+    backdrop-filter:blur(10px);
+  }
+  .tab-btn{color:#667085;border-radius:10px 10px 0 0;}
+  .tab-btn:hover{color:#0F766E;background:#ECFDF5;}
+  .tab-btn.active{
+    color:#fff;
+    background:linear-gradient(135deg,#166534,#0F766E);
+    border-bottom-color:#166534;
+    box-shadow:0 5px 14px rgba(15,118,110,.18);
+  }
+
+  .card{
+    border-color:#E7DCCB;
+    box-shadow:var(--shadow);
+  }
+  .form-card{background:linear-gradient(145deg,#fff 0%,#F0FDF4 100%);}
+  .canopy-card{background:linear-gradient(145deg,#fff 0%,#EFF6FF 100%);}
+  label{color:#166534;}
+  input[type=text],textarea,select{border-color:#D9E2EC;}
+  input[type=text]:focus,textarea:focus,select:focus{
+    outline:2px solid #A7F3D0;border-color:#0F766E;
+  }
+  .cat-opt{border-color:#D9E2EC;}
+  .cat-opt:hover{border-color:#5EEAD4;background:#F0FDFA;transform:translateY(-1px);}
+  .cat-opt svg{color:#0F766E;}
+  .cat-opt.selected{
+    border-color:#0F766E;
+    background:linear-gradient(135deg,#DCFCE7,#CCFBF1);
+    box-shadow:0 4px 12px rgba(15,118,110,.12);
+  }
+  .cat-opt.selected svg,.cat-opt.selected span{color:#065F46;}
+  .sev-opt{border-color:#D9E2EC;}
+  .upload{border-color:#D9E2EC;background:#FAFAFF;}
+  .upload:hover{border-color:#7C3AED;background:#F5F3FF;}
+  .submit-btn{background:linear-gradient(135deg,#166534,#0F766E);box-shadow:0 8px 18px rgba(15,118,110,.2);}
+  .submit-btn:hover{background:linear-gradient(135deg,#14532D,#115E59);}
+  .toast{background:#ECFDF5;border-color:#A7F3D0;}
+
+  .chip{border-color:#D9E2EC;}
+  .chip:hover{border-color:#5EEAD4;background:#F0FDFA;}
+  .chip.active{background:linear-gradient(135deg,#166534,#0F766E);border-color:#166534;}
+  .issue-icon{background:linear-gradient(135deg,#DCFCE7,#DBEAFE);}
+  .issue-icon svg{color:#0F766E;}
+  .issue-title{color:#123B2A;}
+  .upvote{color:#0F766E;background:#ECFDF5;border-color:#BFE8D5;}
+  .upvote:hover{background:#D1FAE5;}
+
+  .stat-card:nth-child(1){border-top:4px solid #2563EB;}
+  .stat-card:nth-child(2){border-top:4px solid #16A34A;}
+  .stat-card:nth-child(3){border-top:4px solid #F59E0B;}
+  .stat-card:nth-child(4){border-top:4px solid #7C3AED;}
+  .stat-card .num{color:#123B2A;}
+
+  .kcol:nth-child(1){background:#EFF6FF;}
+  .kcol:nth-child(2){background:#FFF7ED;}
+  .kcol:nth-child(3){background:#F5F3FF;}
+  .kcol:nth-child(4){background:#ECFDF5;}
+  .kcard{border-color:#E2E8F0;}
+  .kcard button{background:linear-gradient(135deg,#166534,#0F766E);}
+  .kcard button:hover{background:#14532D;}
+  .kcard button.done{background:#D1FAE5;color:#166534;}
+
+  .status-Reported{background:#FEE2E2;color:#B91C1C;}
+  .status-Acknowledged{background:#FEF3C7;color:#B45309;}
+  .status-InProgress{background:#DBEAFE;color:#1D4ED8;}
+  .status-Resolved{background:#DCFCE7;color:#15803D;}
+  .status-Verified{background:#BBF7D0;color:#14532D;}
+
+  footer{border-top-color:#E8DCC9;}
+
+
+  @media(max-width:640px){
+    .tabs{overflow-x:auto;scrollbar-width:none;}
+    .tabs::-webkit-scrollbar{display:none;}
+    .tab-btn{padding:11px 14px;font-size:13px;}
+  }
+
+  /* ================= NEW: shared bits ================= */
+  .section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .section-title h3{font-size:16px;}
+  .section-title .see-all{font-size:12px;font-weight:700;color:#0F766E;cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;}
+  .subtle{font-size:12.5px;color:var(--ink-soft);}
+
+  /* ---------- Around Me ---------- */
+  .around-card{padding:22px;margin-bottom:20px;}
+  .radius-row{display:flex;gap:8px;margin-bottom:16px;}
+  .radius-opt{
+    font-size:12px;font-weight:700;padding:6px 12px;border-radius:100px;border:1px solid #D9E2EC;
+    background:#fff;cursor:pointer;color:var(--ink-soft);
+  }
+  .radius-opt.active{background:linear-gradient(135deg,#166534,#0F766E);color:#fff;border-color:#166534;}
+  .around-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  @media(max-width:560px){.around-stats{grid-template-columns:1fr;}}
+  .around-stat{border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;}
+  .around-stat .dot-badge{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+  .around-stat .num{font-family:'Fraunces',serif;font-size:22px;color:#123B2A;line-height:1;}
+  .around-stat .lbl{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+  .around-stat.unresolved{background:#FFF7ED;} .around-stat.unresolved .dot-badge{background:#FEF3C7;}
+  .around-stat.urgent{background:#FEF2F2;} .around-stat.urgent .dot-badge{background:#FEE2E2;}
+  .around-stat.resolved{background:#F0FDF4;} .around-stat.resolved .dot-badge{background:#DCFCE7;}
+
+  /* ---------- Ward pulse ---------- */
+  .pulse-card{padding:22px;background:linear-gradient(135deg,#123B2A,#0F766E);color:#fff;margin-bottom:20px;}
+  .pulse-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+  .pulse-top h3{color:#fff;font-size:17px;}
+  .pulse-select{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);color:#fff;font-size:12px;font-weight:700;padding:6px 10px;border-radius:8px;font-family:'Inter',sans-serif;}
+  .pulse-select option{color:#123B2A;}
+  .pulse-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:18px;}
+  @media(max-width:640px){.pulse-grid{grid-template-columns:repeat(2,1fr);}}
+  .pulse-metric .v{font-family:'Fraunces',serif;font-size:24px;}
+  .pulse-metric .l{font-size:11.5px;color:#CFE0CC;margin-top:2px;}
+  .pulse-bar{height:8px;border-radius:100px;background:rgba(255,255,255,.18);margin-top:14px;overflow:hidden;}
+  .pulse-bar-fill{height:100%;background:linear-gradient(90deg,#84CC16,#FBBF24);border-radius:100px;}
+
+  /* ---------- Trending mini cards ---------- */
+  .trend-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px;}
+  @media(max-width:760px){.trend-grid{grid-template-columns:1fr;}}
+  .trend-card{padding:14px 16px;cursor:pointer;transition:.15s;}
+  .trend-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(15,118,110,.14);}
+  .trend-card .rank{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#0F766E;font-weight:700;}
+  .trend-card .t{font-weight:700;font-size:13.5px;color:#123B2A;margin-top:4px;}
+  .trend-card .v{font-size:11.5px;color:var(--ink-soft);margin-top:6px;display:flex;align-items:center;gap:5px;}
+
+  /* ---------- Quick actions ---------- */
+  .quick-actions{display:flex;gap:10px;margin-bottom:26px;flex-wrap:wrap;}
+  .qa-btn{
+    display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;
+    cursor:pointer;border:1px solid #D9E2EC;background:#fff;color:#123B2A;
+  }
+  .qa-btn:hover{border-color:#5EEAD4;background:#F0FDFA;}
+  .qa-btn.primary{background:linear-gradient(135deg,#166534,#0F766E);color:#fff;border-color:#166534;}
+
+  /* ---------- Timeline stepper ---------- */
+  .timeline{display:flex;align-items:flex-start;margin:14px 0 4px;overflow-x:auto;padding-bottom:4px;}
+  .tl-step{display:flex;flex-direction:column;align-items:center;flex:1;min-width:74px;position:relative;}
+  .tl-dot{width:22px;height:22px;border-radius:50%;background:#E2E8F0;border:2px solid #E2E8F0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#94A3B8;z-index:1;}
+  .tl-line{position:absolute;top:10px;left:-50%;width:100%;height:2px;background:#E2E8F0;z-index:0;}
+  .tl-step:first-child .tl-line{display:none;}
+  .tl-step.done .tl-dot{background:#166534;border-color:#166534;color:#fff;}
+  .tl-step.done .tl-line{background:#166534;}
+  .tl-step.current .tl-dot{background:#fff;border-color:#0F766E;color:#0F766E;box-shadow:0 0 0 4px rgba(15,118,110,.14);}
+  .tl-lbl{font-size:10px;color:var(--ink-soft);margin-top:6px;text-align:center;font-weight:600;line-height:1.2;}
+  .tl-step.done .tl-lbl,.tl-step.current .tl-lbl{color:#123B2A;}
+  .reopened-flag{
+    display:inline-flex;align-items:center;gap:5px;background:#FEE2E2;color:#B91C1C;font-size:11px;font-weight:700;
+    padding:4px 10px;border-radius:100px;margin-top:8px;
+  }
+
+  /* ---------- My Reports ---------- */
+  .myreport-card{padding:18px 20px;margin-bottom:14px;}
+  .myreport-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+  .myreport-top .t{font-weight:700;font-size:14.5px;color:#123B2A;}
+  .myreport-top .m{font-size:11.5px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;margin-top:2px;}
+
+  /* ---------- Verification ---------- */
+  .verify-box{margin-top:12px;padding:12px 14px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;}
+  .verify-box .q{font-size:12.5px;font-weight:700;color:#123B2A;margin-bottom:8px;}
+  .verify-btns{display:flex;gap:8px;}
+  .verify-btn{flex:1;padding:8px;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;border:1px solid;text-align:center;}
+  .verify-btn.yes{background:#fff;border-color:#86EFAC;color:#166534;}
+  .verify-btn.yes:hover{background:#DCFCE7;}
+  .verify-btn.no{background:#fff;border-color:#FCA5A5;color:#B91C1C;}
+  .verify-btn.no:hover{background:#FEE2E2;}
+  .verify-done{font-size:12px;font-weight:700;color:#166534;margin-top:10px;}
+
+  /* ---------- Duplicate detection ---------- */
+  .voice-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
+  .voice-btn{padding:8px 14px;border-radius:100px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:var(--forest-deep);font-family:'Inter',sans-serif;}
+  .voice-btn:hover{border-color:var(--moss);}
+  .voice-btn.active{background:var(--moss);border-color:var(--moss);color:#fff;}
+  .voice-btn.listening{background:#B91C1C;border-color:#B91C1C;color:#fff;animation:vpulse 1.2s infinite;}
+  .voice-btn:disabled{opacity:.5;cursor:not-allowed;}
+  @keyframes vpulse{0%,100%{box-shadow:0 0 0 0 rgba(185,28,28,.4);}50%{box-shadow:0 0 0 6px rgba(185,28,28,0);}}
+  .voice-lang{padding:7px 10px;border-radius:9px;border:1px solid var(--line);font-size:13px;background:#fff;color:var(--ink);width:auto;}
+  .voice-card{display:none;margin-bottom:12px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#F6FAF4;}
+  .voice-card.show{display:block;}
+  .voice-card .vt{font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px;}
+  .voice-card textarea{min-height:70px;}
+  .voice-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .voice-msg{font-size:12.5px;color:var(--ink-soft);margin-top:6px;}
+  .voice-msg.err{color:#B91C1C;}
+  .dup-box{margin-top:-6px;margin-bottom:18px;padding:14px 16px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;display:none;}
+  .dup-box.show{display:block;animation:fade .2s ease;}
+  .dup-box .h{font-size:12.5px;font-weight:700;color:#92400E;margin-bottom:8px;}
+  .dup-item{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:1px solid #FDE68A;border-radius:8px;padding:8px 10px;margin-bottom:6px;}
+  .dup-item .t{font-size:12.5px;font-weight:600;color:#123B2A;}
+  .dup-item .d{font-size:11px;color:var(--ink-soft);}
+  .dup-upvote{font-size:11.5px;font-weight:700;color:#0F766E;background:#ECFDF5;border:1px solid #BFE8D5;padding:5px 10px;border-radius:100px;cursor:pointer;white-space:nowrap;}
+  .dup-upvote:hover{background:#D1FAE5;}
+
+  /* ---------- Comments ---------- */
+  .comment-toggle{font-size:12px;font-weight:700;color:var(--ink-soft);background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;}
+  .comment-toggle:hover{color:#0F766E;}
+  .comments-wrap{display:none;margin-top:12px;border-top:1px dashed #E7DCCB;padding-top:12px;}
+  .comments-wrap.show{display:block;}
+  .comment-item{font-size:12.5px;margin-bottom:8px;line-height:1.5;}
+  .comment-item b{color:#123B2A;}
+  .comment-item .ca{font-size:10.5px;color:var(--ink-soft);margin-left:4px;font-family:'IBM Plex Mono',monospace;}
+  .comment-add{display:flex;gap:8px;margin-top:8px;}
+  .comment-add input{flex:1;font-size:12.5px;padding:8px 10px;border-radius:8px;border:1px solid #D9E2EC;}
+  .comment-add button{font-size:12px;font-weight:700;background:#166534;color:#fff;border:none;padding:0 14px;border-radius:8px;cursor:pointer;}
+  .downvote{
+    display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:#B91C1C;
+    background:#FEF2F2;border:1px solid #FCA5A5;padding:6px 11px;border-radius:100px;cursor:pointer;
+  }
+  .downvote:hover{background:#FEE2E2;}
+  .downvote svg{width:13px;height:13px;transform:rotate(180deg);}
+
+  /* ---------- Map (Leaflet) ---------- */
+  .map-wrap{position:relative;height:440px;border-radius:var(--radius);overflow:hidden;border:1px solid #E7DCCB;background:#EAF3EC;}
+  .map-wrap .leaflet-container{font-family:'Inter',sans-serif;background:#EAF3EC;}
+  .you-marker{position:relative;}
+  .you-dot{width:16px;height:16px;border-radius:50%;background:#2563EB;border:3px solid #fff;box-shadow:0 0 0 6px rgba(37,99,235,.2);}
+  .pin-dot{
+    width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;
+    border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.22);
+  }
+  .pin-dot span{transform:rotate(45deg);}
+  .leaflet-popup-content-wrapper{border-radius:12px;box-shadow:var(--shadow);}
+  .leaflet-popup-content{margin:14px 16px;min-width:200px;}
+  .leaflet-pop .issue-title{font-size:13px;color:#123B2A;}
+  .leaflet-pop .issue-meta{font-size:11px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;margin-top:2px;}
+  .leaflet-pop .issue-desc{font-size:12px;color:var(--ink-soft);margin:6px 0;line-height:1.45;}
+  .map-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:12px;color:var(--ink-soft);}
+  .map-legend .li{display:flex;align-items:center;gap:6px;}
+  .map-legend .sw{width:10px;height:10px;border-radius:50%;display:inline-block;}
+  .map-attrib{font-size:11px;color:var(--ink-soft);margin-top:6px;}
+  .map-attrib a{color:var(--ink-soft);}
+
+  /* ---------- Alerts ---------- */
+  .alert-item{display:flex;gap:12px;padding:14px 16px;align-items:flex-start;margin-bottom:10px;}
+  .alert-item.unread{border-left:3px solid #0F766E;}
+  .alert-icon{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;}
+  .alert-body .t{font-size:13.5px;font-weight:700;color:#123B2A;}
+  .alert-body .d{font-size:12.5px;color:var(--ink-soft);margin-top:2px;line-height:1.5;}
+  .alert-body .m{font-size:11px;color:var(--ink-soft);margin-top:4px;font-family:'IBM Plex Mono',monospace;}
+
+  /* ---------- Impact ---------- */
+  .impact-hero{padding:26px;background:linear-gradient(135deg,#123B2A,#0F766E);color:#fff;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:18px;}
+  .impact-hero .pts{font-family:'Fraunces',serif;font-size:42px;}
+  .impact-hero .lbl{font-size:12.5px;color:#CFE0CC;}
+  .impact-hero .rank{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);padding:8px 14px;border-radius:10px;font-size:12.5px;}
+  .badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  @media(max-width:760px){.badge-grid{grid-template-columns:repeat(2,1fr);}}
+  .badge-card{padding:18px 14px;text-align:center;}
+  .badge-card .ic{width:46px;height:46px;border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:20px;background:#F0FDF4;}
+  .badge-card.locked{opacity:.4;}
+  .badge-card .t{font-size:12.5px;font-weight:700;color:#123B2A;}
+  .badge-card .d{font-size:11px;color:var(--ink-soft);margin-top:3px;}
+
+  /* ---------- Profile ---------- */
+  .profile-card{padding:26px;margin-bottom:20px;}
+  .profile-avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#166534,#0F766E);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:20px;margin-bottom:16px;}
+  .toggle-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-top:1px solid #EFEADC;}
+  .toggle-row:first-of-type{border-top:none;}
+  .toggle-row .l{font-size:13.5px;font-weight:600;color:#123B2A;}
+  .toggle-row .s{font-size:11.5px;color:var(--ink-soft);}
+  .switch{position:relative;width:38px;height:22px;flex-shrink:0;}
+  .switch input{opacity:0;width:0;height:0;}
+  .switch .slider{position:absolute;inset:0;background:#D9E2EC;border-radius:100px;cursor:pointer;transition:.15s;}
+  .switch .slider:before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s;}
+  .switch input:checked+.slider{background:#166534;}
+  .switch input:checked+.slider:before{transform:translateX(16px);}
+
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 21C7 21 4 17 4 12.5C4 8 7 4 12 3C13 8 16 8.5 16 12.5C16 17 15 21 12 21Z" stroke="#F2F0E4" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 21V10" stroke="#F2F0E4" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </div>
+    <div class="brand-text">
+      <div class="name">TerraSync</div>
+      <div class="sub">Citizen Grievance Portal</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div class="team-badge"><span class="dot" style="width:6px;height:6px;border-radius:50%;background:#84CC16;"></span> &nbsp;<b>Live</b> &nbsp;·&nbsp; Clean &amp; Green Cities</div>
+    <a href="terrasync-citizen-login.html" id="sign-out-link" style="font-size:12.5px;font-weight:600;color:var(--ink-soft);text-decoration:none;font-family:'IBM Plex Mono',monospace;">Sign out</a>
+  </div>
+</div>
+
+<div class="shell">
+  <div class="hero">
+    <div class="hero-top">
+      <div class="hero-content">
+        <div class="eyebrow"><span class="dot"></span> NOIDA &amp; GREATER NOIDA — CITIZEN GRIEVANCE PORTAL</div>
+        <h1>Report a civic issue in your ward.</h1>
+        <p class="lede">Use this portal to register complaints regarding roads, sanitation, water supply, electrical faults, and public spaces. Each complaint is assigned a tracking ID, routed to the concerned department, and monitored against the applicable service-level timeline until it is marked resolved.</p>
+      </div>
+      <div class="hero-visual">
+        <svg viewBox="0 0 320 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illustration of submitting a report and tracking it through to resolution">
+          <rect x="0.5" y="0.5" width="319" height="279" rx="17.5" fill="var(--bg-raised)" stroke="var(--line)"/>
+          <rect x="24" y="26" width="272" height="110" rx="10" fill="var(--bg-raised)" stroke="var(--line)"/>
+          <rect x="40" y="42" width="72" height="54" rx="6" fill="#E4E9DE"/>
+          <circle cx="60" cy="54" r="5" fill="var(--amber)"/>
+          <path d="M50 84 L67 62 L80 74 L98 56" stroke="var(--moss)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="126" y="48" width="126" height="10" rx="5" fill="var(--line)"/>
+          <rect x="126" y="66" width="146" height="8" rx="4" fill="var(--line)"/>
+          <rect x="126" y="82" width="96" height="8" rx="4" fill="var(--line)"/>
+          <rect x="126" y="104" width="76" height="20" rx="10" fill="var(--forest-deep)"/>
+          <text x="140" y="118" font-family="'IBM Plex Mono', monospace" font-size="10.5" fill="#fff">SUBMIT</text>
+          <line x1="52" y1="204" x2="268" y2="204" stroke="var(--line)" stroke-width="3" stroke-linecap="round"/>
+          <line x1="52" y1="204" x2="196" y2="204" stroke="var(--leaf)" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="52" cy="204" r="8" fill="var(--leaf)"/>
+          <circle cx="124" cy="204" r="8" fill="var(--leaf)"/>
+          <circle cx="196" cy="204" r="8" fill="var(--leaf)"/>
+          <circle cx="268" cy="204" r="9" fill="var(--bg-raised)" stroke="var(--amber)" stroke-width="3"/>
+          <text x="52" y="230" font-family="'IBM Plex Mono', monospace" font-size="9" text-anchor="middle" fill="var(--ink-soft)">REPORTED</text>
+          <text x="124" y="230" font-family="'IBM Plex Mono', monospace" font-size="9" text-anchor="middle" fill="var(--ink-soft)">ACK'D</text>
+          <text x="196" y="230" font-family="'IBM Plex Mono', monospace" font-size="9" text-anchor="middle" fill="var(--ink-soft)">IN PROGRESS</text>
+          <text x="268" y="230" font-family="'IBM Plex Mono', monospace" font-size="9" text-anchor="middle" fill="var(--forest-deep)" font-weight="600">RESOLVED</text>
+        </svg>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat"><div class="num" id="stat-total">—</div><div class="lbl">Complaints registered</div></div>
+      <div class="hstat"><div class="num" id="stat-resolved">—</div><div class="lbl">Resolved</div></div>
+      <div class="hstat"><div class="num" id="stat-time">4.6 days</div><div class="lbl">Avg. redressal time</div></div>
+      <div class="hstat"><div class="num" id="stat-citizens">1,204</div><div class="lbl">Registered citizens</div></div>
+    </div>
+  </div>
+
+    <div class="tabs">
+    <button class="tab-btn active" data-tab="home">🏠 Home</button>
+    <button class="tab-btn" data-tab="report">📍 Report</button>
+    <button class="tab-btn" data-tab="myreports">📋 My Reports</button>
+    <button class="tab-btn" data-tab="map">🗺️ Map</button>
+    <button class="tab-btn" data-tab="community">👍 Community</button>
+    <button class="tab-btn" data-tab="alerts">🔔 Alerts</button>
+    <button class="tab-btn" data-tab="impact">🏆 Impact</button>
+    <button class="tab-btn" data-tab="profile">👤 Profile</button>
+  </div>
+
+<!-- ===================== HOME TAB ===================== -->
+  <div class="tab-panel active" id="panel-home">
+
+    <div class="card around-card">
+      <div class="section-title"><h3>📍 Around me</h3><span class="subtle" id="around-loc">Sector 62, Noida</span></div>
+      <div class="radius-row" id="radius-row">
+        <div class="radius-opt" data-r="500">Within 500m</div>
+        <div class="radius-opt active" data-r="1000">Within 1km</div>
+        <div class="radius-opt" data-r="5000">Within 5km</div>
+      </div>
+      <div class="around-stats" id="around-stats"></div>
+    </div>
+
+    <div class="card pulse-card">
+      <div class="pulse-top">
+        <div>
+          <div class="subtle" style="color:#CFE0CC;">WARD PULSE</div>
+          <h3 id="pulse-ward-name">Sector 62, Noida</h3>
+        </div>
+        <select class="pulse-select" id="pulse-ward-select">
+          <option value="Sector 62, Noida">Sector 62, Noida</option>
+          <option value="Sector 18, Noida">Sector 18, Noida</option>
+          <option value="Sector 137, Noida">Sector 137, Noida</option>
+          <option value="Pari Chowk, Greater Noida">Pari Chowk, Greater Noida</option>
+          <option value="Alpha 1, Greater Noida">Alpha 1, Greater Noida</option>
+          <option value="Knowledge Park II, Greater Noida">Knowledge Park II, Greater Noida</option>
+          <option value="Knowledge Park III, Greater Noida">Knowledge Park III, Greater Noida</option>
+        </select>
+      </div>
+      <div class="pulse-bar"><div class="pulse-bar-fill" id="pulse-bar-fill" style="width:0%"></div></div>
+      <div class="pulse-grid" id="pulse-grid"></div>
+    </div>
+
+    <div class="section-title"><h3>🔥 Trending nearby</h3><button class="see-all" data-goto="community">See all →</button></div>
+    <div class="trend-grid" id="trend-grid"></div>
+
+    <div class="quick-actions">
+      <button class="qa-btn primary" data-goto="report">📍 Report a new issue</button>
+      <button class="qa-btn" data-goto="map">🗺️ View issue map</button>
+      <button class="qa-btn" data-goto="myreports">📋 Track my reports</button>
+    </div>
+  </div>
+
+<!-- ===================== REPORT TAB ===================== -->
+  <div class="tab-panel" id="panel-report">
+    <div class="grid-2">
+      <div class="card form-card">
+        <h2>Report a civic issue</h2>
+        <div class="hint">Fields marked with the leaf icon are auto-detected to keep this fast on the street.</div>
+
+        <div class="field">
+          <label>Category</label>
+          <div class="cat-grid" id="cat-grid"></div>
+        </div>
+
+        <div class="field">
+          <label>Issue title <span style="font-weight:400;opacity:.65">(optional with a photo — AI fills it in)</span></label>
+          <input type="text" id="in-title" placeholder="e.g. Overflowing garbage bin near bus stop">
+        </div>
+
+        <div class="dup-box" id="dup-box"></div>
+
+        <div class="field">
+          <label>Description <span style="font-weight:400;opacity:.65">(optional with a photo)</span></label>
+          <div class="voice-row">
+            <button type="button" class="voice-btn" id="vc-speak">🎙️ Speak</button>
+            <button type="button" class="voice-btn active" id="vc-type">✏️ Type</button>
+            <select id="vc-lang" class="voice-lang" aria-label="Speech language">
+              <option value="en-IN">English</option>
+              <option value="hi-IN">हिन्दी (Hindi)</option>
+            </select>
+          </div>
+          <div class="voice-card" id="vc-card">
+            <div class="vt" id="vc-title">Transcript</div>
+            <textarea id="vc-text" placeholder="Your words will appear here…"></textarea>
+            <div class="voice-actions">
+              <button type="button" class="voice-btn" id="vc-edit">Edit</button>
+              <button type="button" class="voice-btn active" id="vc-use">Use This Report</button>
+              <button type="button" class="voice-btn" id="vc-again">Record Again</button>
+            </div>
+          </div>
+          <div class="voice-msg" id="vc-msg"></div>
+          <textarea id="in-desc" placeholder="What's wrong, and how urgent does it look?"></textarea>
+        </div>
+
+        <div class="field">
+          <label>Severity</label>
+          <div class="sev-row" id="sev-row">
+            <div class="sev-opt low" data-sev="low">Low</div>
+            <div class="sev-opt med selected" data-sev="med">Medium</div>
+            <div class="sev-opt high" data-sev="high">High</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Location</label>
+          <div class="loc-row">
+            <input type="text" id="in-loc" placeholder="Tap the pin to auto-tag via GPS, or type an address">
+            <button type="button" class="loc-btn" id="loc-refresh-btn" title="Use my current location">📍</button>
+          </div>
+          <div class="loc-status subtle" id="loc-status">Location not captured yet.</div>
+        </div>
+
+        <div class="field">
+          <label>Photo evidence</label>
+          <input type="file" id="upload-input" accept="image/jpeg,image/png,image/webp" style="display:none;">
+          <div class="upload" id="upload-box">📷 Tap to attach a photo — geo &amp; time stamped automatically</div>
+        </div>
+
+        <button class="submit-btn" id="submit-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Submit report
+        </button>
+        <div id="ticket-out"></div>
+        <div class="toast" id="toast">✓ Report received — Issue ID <span id="toast-id" class="mono"></span> routed to Sector 62, Noida Sanitation Desk.</div>
+      </div>
+    </div>
+  </div>
+
+<!-- ===================== MY REPORTS TAB ===================== -->
+  <div class="tab-panel" id="panel-myreports">
+    <div class="section-title"><h3>📋 My reports</h3><span class="subtle" id="myreports-count"></span></div>
+    <div id="myreports-list"></div>
+  </div>
+
+<!-- ===================== MAP TAB ===================== -->
+  <div class="tab-panel" id="panel-map">
+    <div class="section-title"><h3>🗺️ Issue map</h3><span class="subtle">Tap a pin for details</span></div>
+    <div class="map-wrap" id="map-wrap"></div>
+    <div class="map-legend">
+      <span class="li"><span class="sw" style="background:#DC2626;"></span>High severity</span>
+      <span class="li"><span class="sw" style="background:#F59E0B;"></span>Medium severity</span>
+      <span class="li"><span class="sw" style="background:#166534;"></span>Low severity</span>
+      <span class="li"><span class="sw" style="background:#16A34A;"></span>Resolved</span>
+      <span class="li"><span class="sw" style="background:#2563EB;"></span>You are here</span>
+    </div>
+    <div class="map-attrib">Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, rendered with <a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>.</div>
+  </div>
+
+<!-- ===================== COMMUNITY TAB ===================== -->
+  <div class="tab-panel" id="panel-community">
+    <div class="feed-toolbar">
+      <div class="filter-row" id="feed-filters"></div>
+      <div class="filter-row">
+        <div class="chip active" data-sort="recent">Most recent</div>
+        <div class="chip" data-sort="votes">Most upvoted</div>
+      </div>
+    </div>
+    <div class="issue-list" id="issue-list"></div>
+  </div>
+
+<!-- ===================== ALERTS TAB ===================== -->
+  <div class="tab-panel" id="panel-alerts">
+    <div class="section-title"><h3>🔔 Alerts</h3><span class="subtle">Status changes, officer replies &amp; nearby activity</span></div>
+    <div id="alerts-list"></div>
+  </div>
+
+<!-- ===================== IMPACT TAB ===================== -->
+  <div class="tab-panel" id="panel-impact">
+    <div class="card impact-hero">
+      <div>
+        <div class="pts" id="impact-points">0</div>
+        <div class="lbl">Community points</div>
+      </div>
+      <div class="rank" id="impact-rank">Ward rank —</div>
+    </div>
+    <div class="stat-cards" id="impact-stats"></div>
+    <div class="section-title"><h3>Badges</h3></div>
+    <div class="badge-grid" id="badge-grid"></div>
+  </div>
+
+<!-- ===================== PROFILE TAB ===================== -->
+  <div class="tab-panel" id="panel-profile">
+    <div class="card profile-card">
+      <div class="profile-avatar">Y</div>
+      <h2 style="font-size:19px;">You</h2>
+      <div class="subtle" style="margin-top:2px;">Citizen reporter · Sector 62, Noida</div>
+
+      <div class="field" style="margin-top:22px;">
+        <label>Home ward</label>
+        <select id="profile-ward"></select>
+      </div>
+      <div class="field">
+        <label>Display name</label>
+        <input type="text" id="profile-name" value="You">
+      </div>
+      <div class="field">
+        <label>Phone</label>
+        <input type="text" value="+91 98•••••210" disabled style="color:var(--ink-soft);">
+      </div>
+      <button class="submit-btn" id="profile-save">Save changes</button>
+      <div class="toast" id="profile-toast">✓ Profile updated.</div>
+    </div>
+
+    <div class="card profile-card">
+      <h3 style="font-size:15px;margin-bottom:4px;">Notifications</h3>
+      <div class="subtle" style="margin-bottom:6px;">Choose what TerraSync should ping you about.</div>
+      <div class="toggle-row"><div><div class="l">Status changes on my reports</div><div class="s">Acknowledged, in progress, resolved, verified.</div></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+      <div class="toggle-row"><div><div class="l">Officer responses</div><div class="s">When a municipal desk replies</div></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+      <div class="toggle-row"><div><div class="l">Nearby incidents</div><div class="s">New reports within 1km</div></div><label class="switch"><input type="checkbox"><span class="slider"></span></label></div>
+      <div class="toggle-row"><div><div class="l">Ward announcements</div><div class="s">Municipal updates for Sector 62, Noida</div></div><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+    </div>
+  </div>
+
+<footer>
+    <div class="f">TERRASYNC — PROTOTYPE BUILD</div>
+    <div class="f">CROWDSOURCED CIVIC ISSUE REPORTING &amp; RESOLUTION SYSTEM</div>
+  </footer>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ---------------- Category icon defs ---------------- */
+const CATS = [
+  {id:'road', label:'Roads & potholes', icon:'<path d="M4 19l6-14M14 5l6 14M9 14h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>'},
+  {id:'waste', label:'Garbage & waste', icon:'<path d="M6 7h12l-1 13H7L6 7Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 7V5h6v2M4 7h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>'},
+  {id:'water', label:'Water leakage', icon:'<path d="M12 3s6 7 6 11a6 6 0 1 1-12 0c0-4 6-11 6-11Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>'},
+  {id:'light', label:'Streetlights', icon:'<circle cx="12" cy="9" r="5" stroke="currentColor" stroke-width="1.7"/><path d="M10 20h4M9 16.5h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>'},
+  {id:'drain', label:'Drainage', icon:'<path d="M4 6h16M4 6v5a8 8 0 0 0 16 0V6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>'},
+  {id:'green', label:'Green cover', icon:'<path d="M12 21c-4 0-7-3-7-7 0-4 3-7 7-8 4 1 7 4 7 8 0 4-3 7-7 7Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 21v-9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>'},
+  {id:'air', label:'Air/noise', icon:'<path d="M3 10h3l4-4v12l-4-4H3v-4Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M16 9a4 4 0 0 1 0 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>'},
+  {id:'dump', label:'Illegal dumping', icon:'<path d="M4 17l4-10 4 6 3-4 5 8H4Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>'}
+];
+const catMap = Object.fromEntries(CATS.map(c=>[c.id,c]));
+// Falls back to the 'road' entry for any id catMap doesn't recognize (e.g.
+// a category added to the DB after this page shipped, or a malformed
+// record) so one bad row can't throw and blank out the whole feed/map.
+function catFor(i){ return catMap[i.cat] || catMap.road; }
+
+/* ---------------- Live data (loaded from the backend) ---------------- */
+// Real backend statuses (mirrors VALID_ISSUE_STATUSES / STAGES in app.py
+// and terrasync-admin-app.html) — replaces the old 6-stage fake pipeline
+// (Reported/Verified/Assigned/Work Started/Resolved/Confirmed), which had
+// no backing columns in the database. 'Verified' is now a real final stage:
+// the reporter (or staff) confirmed the fix after it was Resolved.
+const REAL_STAGES = ['Reported','Acknowledged','InProgress','Resolved','Verified'];
+const REAL_STAGE_LABELS = {Reported:'Reported', Acknowledged:'Acknowledged', InProgress:'In Progress', Resolved:'Resolved', Verified:'Verified'};
+
+// Client-only, non-persisted: "was this actually fixed?" responses. There's
+// no confirmations/reopen table in the schema yet, so these reset on
+// reload rather than silently pretending to be saved server-side.
+let confirmedIds = new Set();
+let flaggedIds = new Set();
+
+let issues = [];
+
+const WARDS = {
+  'Sector 62, Noida': {avgDays:3.8},
+  'Sector 18, Noida': {avgDays:5.1},
+  'Sector 137, Noida': {avgDays:2.9},
+  'Pari Chowk, Greater Noida': {avgDays:4.4},
+  'Alpha 1, Greater Noida': {avgDays:4.9},
+  'Knowledge Park II, Greater Noida': {avgDays:4.6},
+  'Knowledge Park III, Greater Noida': {avgDays:5.3}
+};
+
+const MAP_CENTER = [28.6229, 77.3640]; // Sector 62, Noida — fallback used only if real GPS is unavailable
+
+/* ---------------- GPS location capture (report form) ---------------- */
+let reportLat = null;
+let reportLng = null;
+let gpsRequestedOnce = false;
+
+function setLocStatus(text, mode){ // mode: '', 'ok', 'err'
+  const el = document.getElementById('loc-status');
+  el.textContent = text;
+  el.classList.remove('ok','err');
+  if(mode) el.classList.add(mode);
+}
+
+function fetchWithTimeout(url, ms){
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), ms);
+  return fetch(url, {signal: ctrl.signal, headers:{'Accept':'application/json'}}).finally(()=>clearTimeout(timer));
+}
+
+async function reverseGeocode(lat, lng){
+  try{
+    const res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, 6000);
+    if(!res.ok) throw new Error('reverse geocode request failed');
+    const data = await res.json();
+    const a = data.address || {};
+    // A short readable address instead of Nominatim's very long display_name.
+    const short = [
+      a.road || a.pedestrian || a.amenity || a.neighbourhood,
+      a.suburb || a.neighbourhood || a.city_district,
+      a.city || a.town || a.village || a.county
+    ].filter((v,i,arr)=>v && arr.indexOf(v)===i).join(', ');
+    return short || (data.display_name ? data.display_name.split(',').slice(0,3).join(',').trim() : null);
+  }catch(e){
+    return null; // offline / rate-limited / blocked: fall back to raw coordinates
+  }
+}
+
+// Forward geocode a typed address (used when GPS is denied/unavailable) so the
+// pin lands where the citizen said, not on a hardcoded default.
+async function geocodeAddress(text){
+  try{
+    const q = /noida/i.test(text) ? text : `${text}, Noida`;
+    const res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=in&q=${encodeURIComponent(q)}`, 6000);
+    if(!res.ok) return null;
+    const hit = (await res.json())[0];
+    if(!hit) return null;
+    const lat = Number(hit.lat), lng = Number(hit.lon);
+    if(!isFinite(lat) || !isFinite(lng)) return null;
+    // Ignore matches far outside the Noida / Greater Noida service area.
+    if(distanceMetres(MAP_CENTER[0], MAP_CENTER[1], lat, lng) > 60000) return null;
+    return [lat, lng];
+  }catch(e){
+    return null;
+  }
+}
+
+function getPosition(opts){
+  return new Promise((resolve, reject)=>navigator.geolocation.getCurrentPosition(resolve, reject, opts));
+}
+
+async function locationPermissionState(){
+  try{
+    if(navigator.permissions && navigator.permissions.query){
+      return (await navigator.permissions.query({name:'geolocation'})).state; // granted | prompt | denied
+    }
+  }catch(e){ /* Safari / older browsers */ }
+  return 'unknown';
+}
+
+function locationErrorMessage(err){
+  if(!window.isSecureContext){
+    return 'Your browser only allows GPS on secure (https) pages — open the site over https, or type the location below.';
+  }
+  if(!err || typeof err.code !== 'number'){
+    return 'Couldn\'t get your GPS location — type it below instead.';
+  }
+  switch(err.code){
+    case 1: // PERMISSION_DENIED
+      return 'Location access is blocked for this site. Tap the lock icon in the address bar, allow Location, then tap 📍 again — or type the location below.';
+    case 2: // POSITION_UNAVAILABLE
+      return 'Your device couldn\'t work out its position (location services off, or no GPS/Wi-Fi signal). Turn on device location and tap 📍, or type the location below.';
+    case 3: // TIMEOUT
+      return 'GPS took too long to respond. Move near a window or tap 📍 to retry — or type the location below.';
+    default:
+      return 'Couldn\'t get your GPS location — type it below instead.';
+  }
+}
+
+let gpsBusy = false;
+async function requestGPSLocation(){
+  if(gpsBusy) return;
+  const btn = document.getElementById('loc-refresh-btn');
+  const input = document.getElementById('in-loc');
+
+  if(!navigator.geolocation){
+    setLocStatus('This browser doesn\'t support GPS — type your location below.', 'err');
+    return;
+  }
+  if(!window.isSecureContext){
+    setLocStatus(locationErrorMessage(null), 'err');
+    return;
+  }
+
+  gpsBusy = true;
+  btn.disabled = true;
+  btn.classList.add('spin');
+  setLocStatus('Locating you…');
+
+  try{
+    if(await locationPermissionState() === 'denied'){
+      // No point asking again: the browser will refuse without a prompt.
+      const e = {code:1};
+      throw e;
+    }
+    let pos;
+    try{
+      pos = await getPosition({enableHighAccuracy:true, timeout:8000, maximumAge:60000});
+    }catch(first){
+      if(first && first.code === 1) throw first;
+      // Timeout / unavailable is common indoors and on desktops: retry once
+      // with network-based (low accuracy) positioning before giving up.
+      pos = await getPosition({enableHighAccuracy:false, timeout:15000, maximumAge:300000});
+    }
+
+    const lat = pos.coords.latitude, lng = pos.coords.longitude;
+    if(!isFinite(lat) || !isFinite(lng)) throw {code:2};
+    reportLat = lat; reportLng = lng;
+    const accuracy = Math.round(pos.coords.accuracy || 0);
+
+    const address = await reverseGeocode(lat, lng);
+    // Only overwrite the text field if the citizen hasn't typed their own.
+    if(!input.value.trim() || input.dataset.autofilled === 'true'){
+      input.value = address || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      input.dataset.autofilled = 'true';
+    }
+
+    const farAway = distanceMetres(MAP_CENTER[0], MAP_CENTER[1], lat, lng) > 60000;
+    if(farAway){
+      setLocStatus(`📍 Location captured (±${accuracy}m), but it looks outside Noida / Greater Noida. Check it, or type the correct location.`, 'err');
+    }else if(accuracy > 1000){
+      setLocStatus(`📍 Approximate location only (±${accuracy}m). Tap the pin to refresh, or edit the address.`, 'ok');
+    }else{
+      setLocStatus(`📍 GPS location captured (±${accuracy}m). Tap the pin again to refresh.`, 'ok');
+    }
+  }catch(err){
+    reportLat = null;
+    reportLng = null;
+    setLocStatus(locationErrorMessage(err), 'err');
+    input.focus();
+  }finally{
+    gpsBusy = false;
+    btn.disabled = false;
+    btn.classList.remove('spin');
+  }
+}
+
+document.getElementById('loc-refresh-btn').addEventListener('click', requestGPSLocation);
+// If the citizen edits the location text themselves, stop auto-overwriting it
+// the next time a GPS fix comes back.
+document.getElementById('in-loc').addEventListener('input', (e) => { e.target.dataset.autofilled = 'false'; });
+
+let nextIdNum = 2490;
+let selectedCat = 'road';
+let selectedSev = 'med';
+let activeFilter = 'all';
+let activeSort = 'recent';
+let activeRadius = 1000;
+let selectedPulseWard = 'Sector 62, Noida';
+let leafletMap = null;
+let markersLayer = null;
+let mapInitialized = false;
+
+function stageLabel(iss){
+  return REAL_STAGE_LABELS[iss.status] || iss.status || 'Reported';
+}
+function stagePillClass(iss){
+  return 'status-' + (REAL_STAGES.includes(iss.status) ? iss.status : 'Reported');
+}
+function isResolvedStage(iss){ return iss.status === 'Resolved' || iss.status === 'Verified'; }
+function isActiveStage(iss){ return !isResolvedStage(iss); }
+
+/* ---------------- Distance + time helpers ---------------- */
+function escapeHtml(value){ return String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+/* ---------------- Smart civic ticket ---------------- */
+const TICKET_PRI = {high:'HIGH', med:'MEDIUM', low:'LOW'};
+const TICKET_LEAF = "M19.5 4.5C10 4.5 4.5 9.5 4.5 15.5c0 2 .7 3.5 1.8 4.5C12.5 21.5 20 17 19.5 4.5ZM4 21c2.5-5 6-8.5 11-11";
+const ticketStore = {};   // code -> ticket data, used by the Share button
+// t: {code, category, sev, dept, location, status, summary, photo}
+function ticketHtml(t){
+  const sev = TICKET_PRI[t.sev] ? t.sev : 'med';
+  if(t.code) ticketStore[t.code] = t;
+  const rows = [
+    ['Category', escapeHtml(t.category || '—')],
+    ['Priority', `<span class="ticket-pri ${sev}">${TICKET_PRI[sev]}</span>`],
+    ['Department', escapeHtml(t.dept || 'Awaiting routing')],
+    ['Location', escapeHtml(t.location || '—')],
+    ['Status', escapeHtml(t.status || 'Reported')]
+  ];
+  return `<div class="ticket">
+    <div class="ticket-head">
+      <div class="ticket-step" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="${TICKET_LEAF}" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div><div class="ticket-title">TerraSync</div><div class="ticket-sub">Smart Civic Ticket</div></div>
+      ${t.code ? `<div class="ticket-id">${escapeHtml(t.code)}</div>` : ''}
+    </div>
+    ${t.photo ? `<img class="ticket-photo" src="${escapeHtml(t.photo)}" alt="Photo evidence for this ticket">` : ''}
+    <table class="ticket-table">
+      <thead><tr><th>Field</th><th>AI Output</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr><th scope="row">${r[0]}</th><td>${r[1]}</td></tr>`).join('')}</tbody>
+    </table>
+    ${t.summary ? `<div class="ticket-note"><strong>AI summary:</strong> ${escapeHtml(t.summary)}</div>` : ''}
+    ${t.code ? `<div class="ticket-actions"><button type="button" class="ticket-share" data-ticket-share="${escapeHtml(t.code)}">Share ticket image</button></div>` : ''}
+  </div>`;
+}
+
+/* Draw the ticket (with its photo) onto a canvas and share/download it as a PNG. */
+function loadTicketImage(src){
+  return new Promise(resolve=>{
+    if(!src) return resolve(null);
+    const img = new Image();
+    img.onload = ()=>resolve(img);
+    img.onerror = ()=>resolve(null);   // a broken photo must not block sharing the ticket
+    img.src = src;
+  });
+}
+async function ticketToBlob(t){
+  const W = 720, pad = 28, rowH = 52;
+  const img = await loadTicketImage(t.photo);
+  const photoH = img ? 280 : 0;
+  const sev = TICKET_PRI[t.sev] ? t.sev : 'med';
+  const rows = [
+    ['Category', t.category || '—'], ['Priority', TICKET_PRI[sev]], ['Department', t.dept || 'Awaiting routing'],
+    ['Location', t.location || '—'], ['Status', t.status || 'Reported']
+  ];
+  const H = pad + 84 + (img ? photoH + 16 : 0) + rowH * (rows.length + 1) + 56 + pad;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  const rr = (x,y,w,h,r)=>{ g.beginPath(); g.roundRect(x,y,w,h,r); };
+  const fit = (txt, maxW)=>{ let o = String(txt); while(g.measureText(o).width > maxW && o.length > 4) o = o.slice(0,-2); return o === String(txt) ? o : o.trimEnd()+'…'; };
+  g.fillStyle = '#F4F6FB'; g.fillRect(0,0,W,H);
+  g.strokeStyle = '#D5DBEA'; g.lineWidth = 2; rr(1,1,W-2,H-2,22); g.stroke();
+  // header: leaf badge + title
+  g.fillStyle = '#3B82F6'; g.beginPath(); g.arc(pad+26, pad+28, 26, 0, Math.PI*2); g.fill();
+  g.save(); g.translate(pad+26-15, pad+28-15); g.scale(1.25,1.25);
+  g.strokeStyle = '#fff'; g.lineWidth = 1.9; g.lineCap = 'round'; g.lineJoin = 'round'; g.stroke(new Path2D(TICKET_LEAF)); g.restore();
+  g.textBaseline = 'alphabetic';
+  g.fillStyle = '#1C2760'; g.font = '700 26px Fraunces, Georgia, serif'; g.fillText('TERRASYNC', pad+66, pad+26);
+  g.fillStyle = '#3B82F6'; g.font = '700 15px Inter, Arial, sans-serif'; g.fillText('SMART CIVIC TICKET', pad+66, pad+52);
+  if(t.code){ g.fillStyle = '#4B5A7A'; g.font = '600 16px "IBM Plex Mono", monospace'; g.textAlign = 'right'; g.fillText(t.code, W-pad, pad+26); g.textAlign = 'left'; }
+  let y = pad + 84;
+  if(img){
+    const bw = W - pad*2, s = Math.max(bw/img.width, photoH/img.height), sw = bw/s, sh = photoH/s;
+    g.save(); rr(pad,y,bw,photoH,12); g.clip();
+    g.drawImage(img, (img.width-sw)/2, (img.height-sh)/2, sw, sh, pad, y, bw, photoH); g.restore();
+    y += photoH + 16;
+  }
+  // table
+  const tw = W - pad*2, col = tw*0.38;
+  g.fillStyle = '#1C2760'; g.beginPath(); g.roundRect(pad,y,tw,rowH,[8,8,0,0]); g.fill();
+  g.fillStyle = '#fff'; g.font = '700 18px Inter, Arial, sans-serif';
+  g.fillText('Field', pad+16, y+rowH/2+6); g.fillText('AI Output', pad+col+16, y+rowH/2+6);
+  y += rowH;
+  rows.forEach((r,idx)=>{
+    g.fillStyle = idx%2 ? '#EEF1FA' : '#fff'; g.fillRect(pad,y,tw,rowH);
+    g.fillStyle = '#4B5A7A'; g.font = '700 18px Inter, Arial, sans-serif'; g.fillText(r[0], pad+16, y+rowH/2+6);
+    g.fillStyle = r[0]==='Priority' ? ({high:'#D62828',med:'#C77700',low:'#2E7D32'})[sev] : '#1C2233';
+    g.font = (r[0]==='Priority' ? '800' : '500')+' 18px Inter, Arial, sans-serif';
+    g.fillText(fit(r[1], tw-col-32), pad+col+16, y+rowH/2+6);
+    y += rowH;
+  });
+  g.strokeStyle = '#D5DBEA'; g.lineWidth = 1.5; g.strokeRect(pad+.75, y-rowH*(rows.length+1)+.75, tw-1.5, rowH*(rows.length+1)-1.5);
+  g.fillStyle = '#4B5A7A'; g.font = '500 14px Inter, Arial, sans-serif';
+  g.fillText(fit(t.summary ? 'AI summary: '+t.summary : 'Reported via TerraSync', tw), pad, y+30);
+  return new Promise(resolve=>c.toBlob(resolve, 'image/png'));
+}
+async function shareTicket(code, btn){
+  const t = ticketStore[code];
+  if(!t) return;
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Preparing…';
+  try{
+    const blob = await ticketToBlob(t);
+    if(!blob) throw new Error('Could not create the ticket image');
+    const file = new File([blob], `TerraSync-${code}.png`, {type:'image/png'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:`TerraSync ticket ${code}`, text:`TerraSync civic ticket ${code}`});
+    }else{
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = file.name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+    }
+  }catch(e){
+    if(e && e.name !== 'AbortError'){ console.error('Share failed:', e); alert('Could not share the ticket image. Please try again.'); }
+  }finally{
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-ticket-share]');
+  if(b) shareTicket(b.dataset.ticketShare, b);
+});
+function ticketFromIssue(i){
+  return {
+    code: i.id,
+    category: catFor(i).label,
+    sev: i.sev,
+    dept: i.aiDept,
+    location: i.loc || i.ward,
+    status: stageLabel(i),
+    photo: i.photo,
+    summary: i.aiSummary
+  };
+}
+
+function hoursSince(isoTimestamp){
+  if(!isoTimestamp) return 0;
+  const ms = Date.now() - new Date(isoTimestamp).getTime();
+  return Math.max(0, Math.round(ms / 36e5));
+}
+// Haversine distance in metres — used to derive the "distance" field the
+// Around Me / duplicate-detection UI already expects, from real lat/lng.
+function distanceMetres(lat1, lng1, lat2, lng2){
+  if(lat1==null || lng1==null || lat2==null || lng2==null) return 99999;
+  const R = 6371000;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2-lat1), dLng = toRad(lng2-lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+  return Math.round(2 * R * Math.asin(Math.sqrt(a)));
+}
+function meLocation(){
+  return (reportLat!=null && reportLng!=null) ? [reportLat, reportLng] : MAP_CENTER;
+}
+
+/* ---------------- Load real issues from the database ---------------- */
+function transformIssue(i){
+  const [meLat, meLng] = meLocation();
+  const mine = currentCitizen && i.citizen_id === currentCitizen.citizen_id;
+  return {
+    id: i.issue_code || `TS-${i.id}`,
+    dbId: i.id,
+    title: i.title,
+    cat: (i.cat || 'road').toLowerCase(),
+    ward: i.ward || 'Unknown ward',
+    sev: (i.sev || 'med').toLowerCase(),
+    status: i.status || 'Reported',
+    votes: 0, downvotes: 0, comments: [], // no votes/comments tables yet — see README
+    desc: i.desc_text || '',
+    photo: i.photo_url || null,
+    loc: i.location_text || '',
+    aiSummary: i.ai_summary || '',
+    aiDept: i.ai_department || i.officer_dept || '',
+    aiRisk: i.ai_risk || 'none',
+    aiLanguage: i.ai_detected_language || '',
+    aiDuplicate: i.ai_duplicate_signal || 'none',
+    aiSimilar: i.ai_similar_issue_code || '',
+    aiConfidence: i.ai_confidence != null ? Number(i.ai_confidence) : 0,
+    aiModel: i.ai_model || '',
+    by: mine ? 'You' : (i.reporter_name || 'Citizen'),
+    hrs: hoursSince(i.created_at),
+    lat: i.lat!=null ? Number(i.lat) : MAP_CENTER[0],
+    lng: i.lng!=null ? Number(i.lng) : MAP_CENTER[1],
+    distance: distanceMetres(meLat, meLng, i.lat!=null?Number(i.lat):null, i.lng!=null?Number(i.lng):null)
+  };
+}
+
+async function loadIssues(){
+  try{
+    const res = await fetch('/api/issues/feed');
+    if(!res.ok){ console.error('Failed to load issue feed:', res.status); return; }
+    const data = await res.json();
+    issues = data.map(transformIssue);
+    historyCache = {}; // issue set changed — old cached timelines may be stale
+    renderAll();
+  }catch(err){
+    console.error('Could not load issues:', err);
+  }
+}
+
+/* ---------------- Render: category grid ---------------- */
+function renderCatGrid(){
+  const el = document.getElementById('cat-grid');
+  el.innerHTML = CATS.map(c=>`
+    <div class="cat-opt ${c.id===selectedCat?'selected':''}" data-cat="${c.id}">
+      <svg viewBox="0 0 24 24" fill="none">${c.icon}</svg>
+      <span>${c.label}</span>
+    </div>`).join('');
+  el.querySelectorAll('.cat-opt').forEach(o=>o.addEventListener('click',()=>{
+    selectedCat = o.dataset.cat; renderCatGrid();
+  }));
+}
+document.getElementById('sev-row').addEventListener('click', e=>{
+  const opt = e.target.closest('.sev-opt'); if(!opt) return;
+  selectedSev = opt.dataset.sev;
+  document.querySelectorAll('.sev-opt').forEach(o=>o.classList.remove('selected'));
+  opt.classList.add('selected');
+});
+let selectedPhotoFile = null;
+const UPLOAD_BOX_DEFAULT_TEXT = '📷 Tap to attach a photo — geo & time stamped automatically';
+document.getElementById('upload-box').addEventListener('click', function(){
+  document.getElementById('upload-input').click();
+});
+document.getElementById('upload-input').addEventListener('change', function(){
+  const box = document.getElementById('upload-box');
+  const file = this.files && this.files[0];
+  if(!file){ selectedPhotoFile = null; box.textContent = UPLOAD_BOX_DEFAULT_TEXT; box.style.borderColor=''; box.style.color=''; return; }
+
+  const MAX_BYTES = 5 * 1024 * 1024;
+  if(file.size > MAX_BYTES){
+    selectedPhotoFile = null;
+    this.value = '';
+    box.textContent = '⚠️ Photo must be under 5MB — tap to try again';
+    box.style.borderColor = '#DC2626'; box.style.color = '#DC2626';
+    return;
+  }
+
+  selectedPhotoFile = file;
+  // Real GPS coords if we already have a fix from the location step above,
+  // so the timestamp/coords shown here match what actually gets submitted
+  // instead of a hardcoded example.
+  const [lat, lng] = meLocation();
+  box.textContent = `✓ ${file.name} attached — GPS ${lat.toFixed(2)}°N, ${lng.toFixed(2)}°E`;
+  box.style.borderColor = 'var(--moss)'; box.style.color='var(--forest-deep)';
+});
+
+/* ---------------- Duplicate detection ---------------- */
+function checkDuplicates(){
+  const title = document.getElementById('in-title').value.trim().toLowerCase();
+  const box = document.getElementById('dup-box');
+  const matches = issues.filter(i=>
+    isActiveStage(i) && i.cat===selectedCat && i.ward==='Sector 62, Noida' && i.distance<=350 &&
+    (title.length<3 || i.title.toLowerCase().includes(title.split(' ')[0]) || true)
+  ).slice(0,2);
+  if(matches.length===0 || (title.length<2 && selectedCat!=='road')){ box.classList.remove('show'); box.innerHTML=''; return; }
+  box.innerHTML = `<div class="h">⚠️ There ${matches.length===1?'is':'are'} ${matches.length} similar report${matches.length===1?'':'s'} within 150m</div>` +
+    matches.map(m=>`
+      <div class="dup-item">
+        <div><div class="t">${m.title}</div><div class="d">${m.id} · ${m.votes} upvotes · ${stageLabel(m)}</div></div>
+        <div class="dup-upvote" data-id="${m.id}">👍 Upvote instead</div>
+      </div>`).join('') +
+    `<div class="subtle" style="margin-top:2px;">Still a different issue? Go ahead and submit below.</div>`;
+  box.classList.add('show');
+  box.querySelectorAll('.dup-upvote').forEach(b=>b.addEventListener('click', ()=>{
+    const iss = issues.find(x=>x.id===b.dataset.id); iss.votes++;
+    box.innerHTML = `<div class="h">✓ Thanks — upvoted ${iss.id} instead of creating a duplicate.</div>`;
+    setTimeout(()=>{ box.classList.remove('show'); box.innerHTML=''; renderAll(); }, 1800);
+  }));
+}
+document.getElementById('in-title').addEventListener('input', checkDuplicates);
+
+/* ---------------- Voice input (browser speech-to-text) ----------------
+   Uses the Web Speech API where available (Chrome/Edge/Safari). The
+   transcript is only text: the citizen reviews/edits it, confirms it, and
+   it then goes into the normal description field, so the existing
+   photo + text + GPS -> Flask -> Gemini pipeline is unchanged. No audio is
+   uploaded to TerraSync. Note: in Chrome the browser itself may send audio
+   to its own speech service. Needs HTTPS or localhost for mic access. */
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let vcRec = null, vcListening = false, vcFinal = '';
+const vc = id => document.getElementById(id);
+function vcMsg(t, err){ const m = vc('vc-msg'); m.textContent = t || ''; m.className = 'voice-msg' + (err ? ' err' : ''); }
+function vcSetMode(mode){
+  vc('vc-speak').classList.toggle('active', mode==='speak');
+  vc('vc-type').classList.toggle('active', mode==='type');
+}
+function vcStop(){ if(vcRec && vcListening){ try{ vcRec.stop(); }catch(e){} } }
+function vcStart(){
+  if(!SpeechRec) return;
+  vcFinal = (vc('vc-text').value || '').trim();
+  if(vcFinal) vcFinal += ' ';
+  vcRec = new SpeechRec();
+  vcRec.lang = vc('vc-lang').value;
+  vcRec.continuous = true;
+  vcRec.interimResults = true;
+  vcRec.onstart = () => {
+    vcListening = true;
+    vc('vc-speak').classList.add('listening');
+    vc('vc-speak').textContent = '⏹ Stop';
+    vc('vc-card').classList.add('show');
+    vc('vc-title').textContent = 'Listening…';
+    vcMsg('Speak your complaint, then tap Stop.');
+  };
+  vcRec.onresult = (ev) => {
+    let interim = '';
+    for(let i = ev.resultIndex; i < ev.results.length; i++){
+      const t = ev.results[i][0].transcript;
+      if(ev.results[i].isFinal) vcFinal += t + ' '; else interim += t;
+    }
+    vc('vc-text').value = (vcFinal + interim).trim();
+  };
+  vcRec.onerror = (ev) => {
+    const msgs = {
+      'not-allowed': 'Microphone access was blocked. Allow it in your browser settings, or type instead.',
+      'service-not-allowed': 'Microphone access was blocked. Allow it in your browser settings, or type instead.',
+      'no-speech': "We didn't hear anything. Try again, or type instead.",
+      'audio-capture': 'No microphone found. You can type instead.',
+      'network': 'Speech service unreachable (needs an internet connection). You can type instead.',
+      'language-not-supported': 'That language is not supported by this browser. Try English or type instead.'
+    };
+    if(ev.error !== 'aborted') vcMsg(msgs[ev.error] || 'Voice input failed. You can type instead.', true);
+  };
+  vcRec.onend = () => {
+    vcListening = false;
+    vc('vc-speak').classList.remove('listening');
+    vc('vc-speak').textContent = '🎙️ Speak';
+    const txt = vc('vc-text').value.trim();
+    if(txt){
+      vc('vc-title').textContent = 'Transcript — check and edit before using';
+      vcMsg('Speech recognition can make mistakes, so please check the text.');
+    } else {
+      vc('vc-card').classList.remove('show');
+    }
+  };
+  try{ vcRec.start(); }catch(e){ vcMsg('Could not start the microphone. You can type instead.', true); }
+}
+if(!SpeechRec){
+  vc('vc-speak').disabled = true;
+  vc('vc-lang').style.display = 'none';
+  vcMsg('Voice input is not supported in this browser (try Chrome, Edge or Safari). You can type your description.');
+}
+vc('vc-speak').addEventListener('click', () => {
+  if(vcListening){ vcStop(); return; }
+  vcSetMode('speak'); vc('vc-text').value = ''; vcStart();
+});
+vc('vc-type').addEventListener('click', () => {
+  vcStop(); vcSetMode('type'); vc('vc-card').classList.remove('show');
+  if(SpeechRec) vcMsg('');
+  vc('in-desc').focus();
+});
+vc('vc-edit').addEventListener('click', () => { vcStop(); vc('vc-text').focus(); });
+vc('vc-again').addEventListener('click', () => { vcStop(); setTimeout(() => { vc('vc-text').value = ''; vcStart(); }, 150); });
+vc('vc-use').addEventListener('click', () => {
+  vcStop();
+  const txt = vc('vc-text').value.trim();
+  if(!txt){ vcMsg('Nothing to use yet. Record or type something first.', true); return; }
+  const cur = vc('in-desc').value.trim();
+  vc('in-desc').value = cur ? cur + ' ' + txt : txt;
+  vc('vc-text').value = '';
+  vc('vc-card').classList.remove('show');
+  vcSetMode('type');
+  vcMsg('✓ Transcript added to the description. You can still edit it below.');
+});
+function vcPendingTranscript(){ return vc('vc-card').classList.contains('show'); }
+function vcReset(){ vcStop(); vc('vc-text').value=''; vc('vc-card').classList.remove('show'); vcSetMode('type'); vcMsg(''); }
+
+/* ---------------- Submit report ---------------- */
+document.getElementById('submit-btn').addEventListener('click', async () => {
+  const title = document.getElementById('in-title').value.trim();
+  const description = document.getElementById('in-desc').value.trim();
+  const location = document.getElementById('in-loc').value.trim();
+  document.getElementById('ticket-out').innerHTML = '';
+  const submittedPhotoUrl = selectedPhotoFile ? URL.createObjectURL(selectedPhotoFile) : null;
+
+  // A transcript the citizen hasn't confirmed yet must not be silently dropped.
+  if(vcPendingTranscript()){
+    vcMsg('Tap "Use This Report" to confirm your transcript, or Record Again.', true);
+    document.getElementById('vc-card').scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+
+  // Basic validation
+  // A photo alone is enough: Gemini writes the title and description.
+  if(!selectedPhotoFile){
+    if(!title){ document.getElementById('in-title').focus(); vcMsg('Add a photo, or type a title and description.', true); return; }
+    if(!description){ document.getElementById('in-desc').focus(); vcMsg('Add a photo, or type a title and description.', true); return; }
+  }
+
+  // Change button text to show loading state
+  const btn = document.getElementById('submit-btn');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = (selectedPhotoFile && !(title && description)) ? 'Analysing photo…' : 'Submitting...';
+  btn.disabled = true;
+
+  // Prepare the data to match the app.py /api/issues endpoint expectations.
+  // Sent as FormData (not JSON) so the photo file, if any, can ride along
+  // in the same request — the backend detects multipart/form-data and
+  // parses accordingly.
+  const formData = new FormData();
+  formData.append('title', title);
+  formData.append('description', description);
+  formData.append('category_id', selectedCat); // Grabs from the global variable updated by the UI
+  // No ward_id here — the backend sets it from the logged-in citizen's
+  // home_ward_id (see /api/issues in app.py), so every submission lands
+  // in the reporter's actual ward instead of a hardcoded one.
+  formData.append('severity', selectedSev);    // Grabs from the global variable updated by the UI
+  // Coordinates: real GPS fix first; else geocode the address the citizen typed;
+  // else send none (the backend stores NULL) instead of a fake default pin.
+  let coords = (reportLat != null && reportLng != null) ? [reportLat, reportLng] : null;
+  if(!coords && location){
+    btn.innerHTML = 'Finding location…';
+    coords = await geocodeAddress(location);
+  }
+  if(coords){
+    formData.append('latitude', coords[0]);
+    formData.append('longitude', coords[1]);
+  }
+  formData.append('location_text', location);
+  if(selectedPhotoFile){ formData.append('photo', selectedPhotoFile); }
+  btn.innerHTML = (selectedPhotoFile && !(title && description)) ? 'Analysing photo…' : 'Submitting...';
+
+  try {
+      // Call the Flask API at the correct endpoint using native fetch.
+      // No 'Content-Type' header here — the browser sets the multipart
+      // boundary itself; setting it manually breaks the upload.
+      const response = await fetch('/api/issues', {
+          method: 'POST',
+          body: formData
+      });
+
+      const result = await response.json();
+
+      // Check if the database insert was successful via the HTTP status code
+      if (response.ok && result.issue_id) {
+          // Display the newly generated issue code (e.g., TS-2501)
+          const ai = result.ai || {};
+          const toast = document.getElementById('toast');
+          const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+          const aiLine = ai.status === 'ok'
+            ? ` · Gemini triage: ${esc(ai.title || '')} · ${esc(ai.department || 'department')} · ${String(ai.severity || 'med').toUpperCase()}`
+            : '';
+          toast.innerHTML = `✓ Report received — Issue ID <span class="mono">${result.issue_code}</span> routed to ${ai.department || 'the relevant desk'}${aiLine}.`;
+          toast.classList.add('show');
+
+          // Show the structured ticket Gemini produced (same layout as My Reports).
+          document.getElementById('ticket-out').innerHTML = ticketHtml({
+            code: result.issue_code,
+            category: (catMap[ai.category] || {}).label || ai.category,
+            sev: ai.severity,
+            dept: ai.department,
+            location: location || (coords ? `${coords[0].toFixed(5)}, ${coords[1].toFixed(5)}` : 'Location not provided'),
+            status: 'Reported',
+            photo: submittedPhotoUrl,
+            summary: ai.summary
+          });
+
+          // Clear the form
+          document.getElementById('in-title').value='';
+          document.getElementById('in-desc').value='';
+          vcReset();
+          document.getElementById('upload-input').value = '';
+          selectedPhotoFile = null;
+          document.getElementById('upload-box').textContent = UPLOAD_BOX_DEFAULT_TEXT;
+          document.getElementById('upload-box').style.borderColor = '';
+          document.getElementById('upload-box').style.color = '';
+          document.getElementById('dup-box').classList.remove('show');
+          document.getElementById('dup-box').innerHTML='';
+
+          // Hide the success message after a few seconds
+          setTimeout(()=>document.getElementById('toast').classList.remove('show'), 4500);
+
+          // Re-pull the feed so the new report immediately shows up in
+          // Community Feed, My Reports, Around Me, etc. instead of only
+          // appearing after a manual page refresh.
+          loadIssues();
+      } else {
+          const toast = document.getElementById('toast');
+          toast.innerHTML = result.error || "Failed to submit report.";
+          toast.style.color = "red";
+          toast.classList.add('show');
+          setTimeout(()=>toast.classList.remove('show'), 4500);
+      }
+  } catch (error) {
+      console.error("Submission Error:", error);
+      alert("A network error occurred.");
+  }
+
+  // Restore button state
+  btn.innerHTML = originalText;
+  btn.disabled = false;
+});
+
+/* ---------------- Feed / Community ---------------- */
+function renderFeedFilters(){
+  const el = document.getElementById('feed-filters');
+  const chips = [{id:'all',label:'All'}, ...CATS.map(c=>({id:c.id,label:c.label}))];
+  el.innerHTML = chips.map(c=>`<div class="chip ${activeFilter===c.id?'active':''}" data-f="${c.id}">${c.label}</div>`).join('');
+  el.querySelectorAll('.chip').forEach(ch=>ch.addEventListener('click',()=>{ activeFilter=ch.dataset.f; renderFeed(); renderFeedFilters(); }));
+}
+document.addEventListener('click', e=>{
+  const sortChip = e.target.closest('[data-sort]');
+  if(sortChip){
+    activeSort = sortChip.dataset.sort;
+    document.querySelectorAll('[data-sort]').forEach(c=>c.classList.remove('active'));
+    sortChip.classList.add('active');
+    renderFeed();
+  }
+});
+function timeAgo(h){ if(h<1) return 'just now'; if(h<24) return h+'h ago'; return Math.floor(h/24)+'d ago'; }
+
+/* ---------------- Real status history (My Reports timeline) ----------------
+   Wires GET /api/issues/<id>/history into the timeline instead of deriving
+   steps from the client's current `status` field alone — this shows the
+   actual issue_status_history rows (every real transition + when it
+   happened), not just "where things stand right now". */
+let historyCache = {}; // dbId -> array of {id,status,changed_at} | 'loading' | 'error'
+
+async function loadHistory(dbId){
+  if(historyCache[dbId] !== undefined) return; // already loading or loaded
+  historyCache[dbId] = 'loading';
+  try{
+    const res = await fetch(`/api/issues/${dbId}/history`);
+    if(!res.ok) throw new Error(`history fetch failed: ${res.status}`);
+    historyCache[dbId] = await res.json();
+  }catch(err){
+    console.error('Could not load issue history for', dbId, err);
+    historyCache[dbId] = 'error';
+  }
+  renderMyReports();
+}
+
+function timelineLoadingHtml(){
+  return `<div class="timeline"><div class="subtle" style="padding:6px 0;">Loading status history…</div></div>`;
+}
+
+// Used only if the history fetch fails — falls back to a single dot for
+// the issue's current status rather than blocking the whole card.
+function timelineFallbackHtml(iss){
+  const idx = REAL_STAGES.indexOf(iss.status);
+  return `<div class="timeline">
+    <div class="tl-step current"><div class="tl-dot">${idx>=0?idx+1:1}</div><div class="tl-lbl">${stageLabel(iss)}</div></div>
+  </div>`;
+}
+
+function timelineHtml(iss){
+  const hist = historyCache[iss.dbId];
+
+  if(hist === undefined){
+    loadHistory(iss.dbId);
+    return timelineLoadingHtml();
+  }
+  if(hist === 'loading') return timelineLoadingHtml();
+  if(hist === 'error' || !Array.isArray(hist) || hist.length===0) return timelineFallbackHtml(iss);
+
+  return `<div class="timeline">` + hist.map((h,i)=>{
+    const isLast = i===hist.length-1;
+    const cls = isLast ? 'current' : 'done';
+    const label = REAL_STAGE_LABELS[h.status] || h.status;
+    const when = h.changed_at ? new Date(h.changed_at).toLocaleString() : '';
+    return `<div class="tl-step ${cls}" title="${label}${when?' · '+when:''}"><div class="tl-line"></div><div class="tl-dot">${isLast?(i+1):'✓'}</div><div class="tl-lbl">${label}</div></div>`;
+  }).join('') + `</div>` + (flaggedIds.has(iss.id) ? `<div class="reopened-flag">🚩 You flagged this as not actually fixed</div>` : '');
+}
+
+function verifyHtml(iss){
+  if(iss.status!=='Resolved' || confirmedIds.has(iss.id) || flaggedIds.has(iss.id)) return '';
+  return `<div class="verify-box" data-id="${iss.id}">
+    <div class="q">Marked resolved — was this actually fixed?</div>
+    <div class="verify-btns">
+      <div class="verify-btn yes" data-id="${iss.id}" data-v="yes">👍 Yes, fixed</div>
+      <div class="verify-btn no" data-id="${iss.id}" data-v="no">👎 Not fixed</div>
+    </div>
+  </div>`;
+}
+document.addEventListener('click', e=>{
+  const vb = e.target.closest('.verify-btn'); if(!vb) return;
+  const iss = issues.find(x=>x.id===vb.dataset.id); if(!iss) return;
+  if(vb.dataset.v==='yes'){
+    // Persisted: moves the issue to the final 'Verified' status.
+    confirmedIds.add(iss.id);
+    fetch(`/api/issues/${iss.dbId}/verify`, { method: 'POST' })
+      .then(res => { if(res.ok){ iss.status = 'Verified'; delete historyCache[iss.dbId]; } else { confirmedIds.delete(iss.id); } renderAll(); })
+      .catch(() => { confirmedIds.delete(iss.id); renderAll(); });
+  } else {
+    // "Not fixed" isn't persisted (no reopen table yet) — client-side only.
+    flaggedIds.add(iss.id);
+  }
+  renderAll();
+});
+
+function renderFeed(){
+  let list = issues.filter(i=> activeFilter==='all' || i.cat===activeFilter);
+  list = [...list].sort((a,b)=> activeSort==='votes' ? b.votes-a.votes : a.hrs-b.hrs);
+  document.getElementById('issue-list').innerHTML = list.map(i=>`
+    <div class="card issue">
+      <div class="issue-icon"><svg viewBox="0 0 24 24" fill="none">${catFor(i).icon}</svg></div>
+      <div class="issue-body">
+        <div class="issue-top">
+          <div>
+            <div class="issue-title">${i.title}</div>
+            <div class="issue-meta">${i.id} · ${i.ward} · reported by ${i.by} · ${timeAgo(i.hrs)}</div>
+          </div>
+          <span class="status-pill ${stagePillClass(i)}">${stageLabel(i)}</span>
+        </div>
+        <div class="issue-desc">${i.desc}</div>
+        ${i.photo ? `<img src="${i.photo}" alt="Photo evidence for ${i.title}" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin:6px 0 2px;">` : ''}
+        <div class="issue-actions">
+          <div class="upvote" data-id="${i.id}"><svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${i.votes}</div>
+          <div class="downvote" data-id="${i.id}"><svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${i.downvotes}</div>
+          <div class="meta-chip">Severity: ${i.sev}</div>
+          <button class="comment-toggle" data-id="${i.id}">💬 ${i.comments.length} comment${i.comments.length===1?'':'s'}</button>
+        </div>
+        ${verifyHtml(i)}
+        <div class="comments-wrap" id="cw-${i.id}">
+          ${i.comments.map(c=>`<div class="comment-item"><b>${c.by}</b> ${c.text}<span class="ca">${timeAgo(c.hrs)}</span></div>`).join('') || '<div class="subtle">No comments yet — be the first to add context.</div>'}
+          <div class="comment-add">
+            <input type="text" placeholder="Add a comment or verification note…" data-id="${i.id}">
+            <button data-id="${i.id}">Post</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join('') || '<div class="card" style="padding:30px;text-align:center;color:var(--ink-soft);">No reports in this category yet.</div>';
+
+  document.querySelectorAll('.upvote').forEach(u=>u.addEventListener('click',()=>{
+    const iss = issues.find(x=>x.id===u.dataset.id); iss.votes++; renderFeed();
+  }));
+  document.querySelectorAll('.downvote').forEach(u=>u.addEventListener('click',()=>{
+    const iss = issues.find(x=>x.id===u.dataset.id); iss.downvotes++; renderFeed();
+  }));
+  document.querySelectorAll('.comment-toggle').forEach(b=>b.addEventListener('click',()=>{
+    document.getElementById('cw-'+b.dataset.id).classList.toggle('show');
+  }));
+  document.querySelectorAll('.comment-add button').forEach(b=>b.addEventListener('click',()=>{
+    const input = document.querySelector(`.comment-add input[data-id="${b.dataset.id}"]`);
+    const text = input.value.trim(); if(!text) return;
+    const iss = issues.find(x=>x.id===b.dataset.id);
+    iss.comments.push({by:'You', text, hrs:0});
+    renderFeed();
+    document.getElementById('cw-'+iss.id).classList.add('show');
+  }));
+}
+
+/* ---------------- Home: Around Me ---------------- */
+function renderAroundMe(){
+  document.querySelectorAll('.radius-opt').forEach(r=>r.classList.toggle('active', Number(r.dataset.r)===activeRadius));
+  const near = issues.filter(i=>i.distance<=activeRadius);
+  const unresolved = near.filter(isActiveStage).length;
+  const urgent = near.filter(i=>isActiveStage(i) && i.sev==='high').length;
+  const resolved = near.filter(i=>isResolvedStage(i) && i.hrs<=168).length;
+  document.getElementById('around-stats').innerHTML = `
+    <div class="around-stat unresolved"><div class="dot-badge">🟠</div><div><div class="num">${unresolved}</div><div class="lbl">Unresolved issues</div></div></div>
+    <div class="around-stat urgent"><div class="dot-badge">🔴</div><div><div class="num">${urgent}</div><div class="lbl">Urgent issues</div></div></div>
+    <div class="around-stat resolved"><div class="dot-badge">🟢</div><div><div class="num">${resolved}</div><div class="lbl">Recently resolved</div></div></div>`;
+}
+document.getElementById('radius-row').addEventListener('click', e=>{
+  const opt = e.target.closest('.radius-opt'); if(!opt) return;
+  activeRadius = Number(opt.dataset.r); renderAroundMe();
+});
+
+/* ---------------- Home: Ward pulse ---------------- */
+function renderWardPulse(){
+  document.getElementById('pulse-ward-name').textContent = selectedPulseWard;
+  const inWard = issues.filter(i=>i.ward===selectedPulseWard);
+  const total = inWard.length || 1;
+  const resolvedCt = inWard.filter(isResolvedStage).length;
+  const pct = Math.round((resolvedCt/total)*100);
+  const active = inWard.filter(isActiveStage).length;
+  const resolvedWeek = inWard.filter(i=>isResolvedStage(i) && i.hrs<=168).length;
+  const avgDays = WARDS[selectedPulseWard] ? WARDS[selectedPulseWard].avgDays : 4.2;
+  document.getElementById('pulse-bar-fill').style.width = pct+'%';
+  document.getElementById('pulse-grid').innerHTML = `
+    <div class="pulse-metric"><div class="v">${pct}%</div><div class="l">Issues resolved</div></div>
+    <div class="pulse-metric"><div class="v">${active}</div><div class="l">Active reports</div></div>
+    <div class="pulse-metric"><div class="v">${resolvedWeek}</div><div class="l">Resolved this week</div></div>
+    <div class="pulse-metric"><div class="v">${avgDays}d</div><div class="l">Avg. resolution</div></div>`;
+}
+document.getElementById('pulse-ward-select').addEventListener('change', e=>{
+  selectedPulseWard = e.target.value; renderWardPulse();
+});
+
+/* ---------------- Home: Trending ---------------- */
+function renderTrending(){
+  const top = [...issues].sort((a,b)=>b.votes-a.votes).slice(0,3);
+  document.getElementById('trend-grid').innerHTML = top.map((i,idx)=>`
+    <div class="card trend-card" data-goto="community" data-focus="${i.id}">
+      <div class="rank">#${idx+1} · ${i.ward}</div>
+      <div class="t">${i.title}</div>
+      <div class="v">👍 ${i.votes} upvotes · <span class="status-pill ${stagePillClass(i)}" style="padding:2px 7px;">${stageLabel(i)}</span></div>
+    </div>`).join('');
+}
+
+/* ---------------- My Reports ---------------- */
+function renderMyReports(){
+  const mine = issues.filter(i=>i.by==='You');
+  document.getElementById('myreports-count').textContent = mine.length + ' submitted';
+  document.getElementById('myreports-list').innerHTML = mine.map(i=>`
+    <div class="card myreport-card">
+      <div class="myreport-top">
+        <div><div class="t">${i.title}</div><div class="m">${i.id} · ${i.ward} · ${timeAgo(i.hrs)} ${i.aiModel && i.aiModel!=='fallback' ? '· ✨ Gemini triaged' : ''}</div></div>
+        <span class="status-pill ${stagePillClass(i)}">${stageLabel(i)}</span>
+      </div>
+      ${(i.aiSummary || i.aiDept) ? ticketHtml(ticketFromIssue(i)) : ''}
+      ${timelineHtml(i)}
+      ${verifyHtml(i)}
+    </div>`).join('') || '<div class="card" style="padding:30px;text-align:center;color:var(--ink-soft);">You haven&#39;t submitted any reports yet — head to the Report tab.</div>';
+}
+
+/* ---------------- Map (Leaflet + OpenStreetMap) ---------------- */
+function initMap(){
+  if(mapInitialized) return;
+  if(typeof L === 'undefined'){
+    document.getElementById('map-wrap').innerHTML =
+      '<div style="padding:30px;text-align:center;color:var(--ink-soft);font-size:13px;">Map library failed to load — check your internet connection, then reopen this tab.</div>';
+    return;
+  }
+  try{
+    leafletMap = L.map('map-wrap', {scrollWheelZoom:false}).setView(MAP_CENTER, 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+    }).addTo(leafletMap);
+
+    L.marker(MAP_CENTER, {
+      icon: L.divIcon({className:'you-marker', html:'<div class="you-dot"></div>', iconSize:[18,18], iconAnchor:[9,9]})
+    }).addTo(leafletMap).bindTooltip('You are here');
+
+    markersLayer = L.layerGroup().addTo(leafletMap);
+    mapInitialized = true;
+    renderMap();
+    setTimeout(()=>leafletMap.invalidateSize(), 50);
+  }catch(err){
+    console.error('Map init failed:', err);
+    document.getElementById('map-wrap').innerHTML =
+      '<div style="padding:30px;text-align:center;color:var(--ink-soft);font-size:13px;">Couldn\'t load the map right now.</div>';
+  }
+}
+function pinColor(i){
+  if(isResolvedStage(i)) return '#16A34A';
+  return i.sev==='high' ? '#DC2626' : (i.sev==='med' ? '#F59E0B' : '#166534');
+}
+function renderMap(){
+  if(!mapInitialized || !markersLayer) return;
+  markersLayer.clearLayers();
+  issues.forEach(i=>{
+    const icon = L.divIcon({
+      className:'issue-marker',
+      html:`<div class="pin-dot" style="background:${pinColor(i)};transform:rotate(-45deg);"><span>${catFor(i).label[0]}</span></div>`,
+      iconSize:[26,26], iconAnchor:[13,26]
+    });
+    L.marker([i.lat, i.lng], {icon}).addTo(markersLayer).bindPopup(`
+      <div class="leaflet-pop">
+        <div class="issue-title">${i.title}</div>
+        <div class="issue-meta">${i.id} · ${i.ward} · ${i.distance}m away</div>
+        <div class="issue-desc">${i.desc}</div>
+        <span class="status-pill ${stagePillClass(i)}">${stageLabel(i)}</span>
+        <div class="meta-chip" style="margin-top:6px;">👍 ${i.votes} upvotes</div>
+      </div>`);
+  });
+}
+
+/* ---------------- Alerts ---------------- */
+function renderAlerts(){
+  const items = [];
+  issues.filter(i=>i.by==='You').forEach(i=>{
+    items.push({icon:'📣', bg:'#DBEAFE', t:`${i.id} status: ${stageLabel(i)}`, d:`"${i.title}" was updated.`, hrs:i.hrs, unread:i.hrs<24});
+  });
+  items.push({icon:'👮', bg:'#FEF3C7', t:'Officer response on TS-2469', d:'Sector 62, Noida Water Desk: "Team dispatched, ETA 2 hours."', hrs:5, unread:true});
+  items.push({icon:'📍', bg:'#FEE2E2', t:'3 new nearby reports', d:'New issues logged within 1km of your saved location.', hrs:8, unread:true});
+  items.push({icon:'📢', bg:'#DCFCE7', t:'Sector 62, Noida announcement', d:'Monsoon drain-clearance drive scheduled for this weekend.', hrs:30, unread:false});
+  items.push({icon:'🚩', bg:'#FEE2E2', t:'TS-2398 reopened', d:'A citizen reported the manhole repair was not actually fixed.', hrs:14, unread:true});
+  items.sort((a,b)=>a.hrs-b.hrs);
+  document.getElementById('alerts-list').innerHTML = items.map(a=>`
+    <div class="card alert-item ${a.unread?'unread':''}">
+      <div class="alert-icon" style="background:${a.bg};">${a.icon}</div>
+      <div class="alert-body"><div class="t">${a.t}</div><div class="d">${a.d}</div><div class="m">${timeAgo(a.hrs)}</div></div>
+    </div>`).join('');
+}
+
+/* ---------------- Impact ---------------- */
+function renderImpact(){
+  const mine = issues.filter(i=>i.by==='You');
+  const resolvedMine = mine.filter(isResolvedStage).length;
+  const votesReceived = mine.reduce((s,i)=>s+i.votes,0);
+  const confirmations = mine.filter(i=>confirmedIds.has(i.id)).length;
+  const points = mine.length*10 + votesReceived*2 + confirmations*15;
+  document.getElementById('impact-points').textContent = points;
+  document.getElementById('impact-rank').textContent = 'Sector 62, Noida · Top 12%';
+  document.getElementById('impact-stats').innerHTML = `
+    <div class="card stat-card"><div class="num">${mine.length}</div><div class="lbl">Reports submitted</div></div>
+    <div class="card stat-card"><div class="num">${resolvedMine}</div><div class="lbl">Reports resolved</div></div>
+    <div class="card stat-card"><div class="num">${votesReceived}</div><div class="lbl">Community upvotes received</div></div>
+    <div class="card stat-card"><div class="num">${confirmations}</div><div class="lbl">Fixes confirmed by you</div></div>`;
+  const badges = [
+    {ic:'🥇', t:'First Report', d:'Submit your first issue', unlocked: mine.length>=1},
+    {ic:'💧', t:'Water Watcher', d:'Report a water issue', unlocked: mine.some(i=>i.cat==='water')},
+    {ic:'✅', t:'Verified Voice', d:'Confirm a resolved fix', unlocked: confirmations>=1},
+    {ic:'🔥', t:'Streak Keeper', d:'3 reports in a month', unlocked: mine.length>=3},
+    {ic:'📢', t:'Community Voice', d:'Get 10+ upvotes', unlocked: votesReceived>=10},
+    {ic:'🚩', t:'Watchdog', d:'Flag an unresolved fix', unlocked: mine.some(i=>flaggedIds.has(i.id))},
+    {ic:'🏅', t:'Ward Champion', d:'Top 20% in your ward', unlocked: true},
+    {ic:'🌳', t:'Green Guardian', d:'Report a green-cover issue', unlocked: mine.some(i=>i.cat==='green')}
+  ];
+  document.getElementById('badge-grid').innerHTML = badges.map(b=>`
+    <div class="card badge-card ${b.unlocked?'':'locked'}"><div class="ic">${b.ic}</div><div class="t">${b.t}</div><div class="d">${b.d}</div></div>`).join('');
+}
+
+/* ---------------- Profile ---------------- */
+let currentCitizen = null;
+
+function updateProfileWardText(wardName){
+  const label = wardName || 'No ward set';
+  document.querySelector('#panel-profile .subtle').textContent = `Citizen reporter · ${label}`;
+  const wardNoticeEl = [...document.querySelectorAll('.toggle-row .s')]
+    .find(el => el.textContent.startsWith('Municipal updates for'));
+  if(wardNoticeEl) wardNoticeEl.textContent = `Municipal updates for ${label}`;
+}
+
+async function loadProfile(){
+  const wardSelect = document.getElementById('profile-ward');
+  try{
+    const [wardsRes, meRes] = await Promise.all([
+      fetch('/api/wards'),
+      fetch('/api/citizen/me')
+    ]);
+    if(!wardsRes.ok) throw new Error('Failed to load wards');
+    const wards = await wardsRes.json();
+
+    wardSelect.innerHTML =
+      '<option value="">No ward set</option>' +
+      wards.map(w => `<option value="${w.ward_id}">${w.ward_name}</option>`).join('');
+
+    if(meRes.ok){
+      currentCitizen = await meRes.json();
+      document.getElementById('profile-name').value = currentCitizen.display_name || '';
+      wardSelect.value = currentCitizen.home_ward_id ?? '';
+      const matched = wards.find(w => w.ward_id === currentCitizen.home_ward_id);
+      updateProfileWardText(matched ? matched.ward_name : null);
+    }
+  }catch(err){
+    console.error('Could not load profile:', err);
+  }
+}
+
+document.getElementById('profile-save').addEventListener('click', async ()=>{
+  const btn = document.getElementById('profile-save');
+  const t = document.getElementById('profile-toast');
+  const wardSelect = document.getElementById('profile-ward');
+  const displayName = document.getElementById('profile-name').value.trim();
+  const homeWardId = wardSelect.value ? Number(wardSelect.value) : null;
+
+  if(!displayName){
+    document.getElementById('profile-name').focus();
+    return;
+  }
+
+  const originalText = btn.textContent;
+  btn.textContent = 'Saving...';
+  btn.disabled = true;
+
+  try{
+    const res = await fetch('/api/citizen/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ display_name: displayName, home_ward_id: homeWardId })
+    });
+    if(!res.ok){
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err.error || 'Could not save profile');
+    }
+    currentCitizen = await res.json();
+    const selectedOption = wardSelect.options[wardSelect.selectedIndex];
+    updateProfileWardText(homeWardId ? selectedOption.textContent : null);
+    t.textContent = '✓ Profile updated.';
+    t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3000);
+  }catch(err){
+    t.textContent = `✗ ${err.message}`;
+    t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3000);
+  }finally{
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+});
+
+/* ---------------- Tabs ---------------- */
+function activateTab(name){
+  const btn = document.querySelector(`.tab-btn[data-tab="${name}"]`);
+  if(!btn) return;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+  if(name==='map'){
+    setTimeout(()=>{
+      initMap();
+      if(leafletMap) leafletMap.invalidateSize();
+    }, 60);
+  }
+  if(name==='report' && !gpsRequestedOnce){
+    gpsRequestedOnce = true;
+    requestGPSLocation();
+  }
+}
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=> activateTab(btn.dataset.tab));
+});
+document.addEventListener('click', e=>{
+  const goto = e.target.closest('[data-goto]'); if(!goto) return;
+  activateTab(goto.dataset.goto);
+  if(goto.dataset.focus){ activeFilter='all'; renderFeedFilters(); renderFeed(); }
+});
+const requestedTab = new URLSearchParams(location.search).get('tab');
+if(requestedTab) activateTab(requestedTab);
+
+/* ---------------- Master render ---------------- */
+function renderHeroStats(){
+  document.getElementById('stat-total').textContent = issues.length;
+  document.getElementById('stat-resolved').textContent = issues.filter(isResolvedStage).length;
+}
+function renderAll(){
+  renderFeedFilters();
+  renderFeed();
+  renderAroundMe();
+  renderWardPulse();
+  renderTrending();
+  renderMyReports();
+  renderMap();
+  renderAlerts();
+  renderImpact();
+  renderHeroStats();
+}
+// Sign out has to actually invalidate the server-side session (DELETE the
+// row from `sessions` via /api/citizen/logout) before navigating away —
+// just linking to the login page would leave the terrasync_session cookie
+// live, so anyone with that cookie could still hit /api/citizen/*, /api/issues.
+document.getElementById('sign-out-link').addEventListener('click', async (e) => {
+  e.preventDefault();
+  const dest = e.currentTarget.href;
+  try {
+    await fetch('/api/citizen/logout', { method: 'POST' });
+  } catch (err) {
+    console.error('Logout request failed, redirecting anyway:', err);
+  }
+  location.href = dest;
+});
+
+renderCatGrid();
+renderAll();
+(async function init(){
+  // Load the citizen's profile first so transformIssue() can correctly
+  // tag issues filed by the logged-in citizen as by:'You' before the
+  // feed is rendered (My Reports / Impact / Alerts all key off that).
+  await loadProfile();
+  await loadIssues();
+})();
+</script>
+</body>
+</html>
